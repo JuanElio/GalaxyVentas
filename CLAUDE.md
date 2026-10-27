@@ -43,11 +43,11 @@ The project is still a template scaffold (`Class1.cs`, `WeatherForecast`, `UnitT
 
 ## Database schema
 
-`Docs/database/BDVentas.sql` is the reference schema of the existing database (32 tables, schema only, no data). Tables use the `SGP_` prefix and Hungarian-style column names (`vch` varchar, `chr` char, `dtm` datetime, `int`/`dec`...), with audit columns `vchCreador`, `dtmFechaCreacion`, `vchModificador`, `dtmFechaModificacion` and a status flag `chrSituacionRegistro`. EF Core entities must map to these existing names. Note the script targets `USE [BDVenta]`, while the configured connection string points to `GESPO_DEV`.
+`Docs/database/BDVentas.sql` is the reference schema of the existing database (32 tables, schema only, no data). Tables use the `SGP_` prefix and Hungarian-style column names (`vch` varchar, `chr` char, `dtm` datetime, `int`/`dec`...), with audit columns `vchCreador`, `dtmFechaCreacion`, `vchModificador`, `dtmFechaModificacion` and a status flag `chrSituacionRegistro`. EF Core entities must map to these existing names.
 
 ## Configuration
 
-The connection string `ConnectionStrings:DefaultConnection` (SQL Server LocalDB, database `GESPO_DEV`) is stored in **User Secrets** for `Ventas.Api`, not in `appsettings.json` (which keeps an empty placeholder). Set it on a new machine with:
+The connection string `ConnectionStrings:DefaultConnection` (SQL Server LocalDB, database `BDVenta`) is stored in **User Secrets** for `Ventas.Api`, not in `appsettings.json` (which keeps an empty placeholder). Set it on a new machine with:
 
 ```bash
 cd src/Ventas.Api
