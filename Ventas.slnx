@@ -1,2 +1,12 @@
 <Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Ventas.Api/Ventas.Api.csproj" />
+    <Project Path="src/Ventas.Application/Ventas.Application.csproj" />
+    <Project Path="src/Ventas.Domain/Ventas.Domain.csproj" />
+    <Project Path="src/Ventas.Infrastructure/Ventas.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Ventas.IntegrationTests/Ventas.IntegrationTests.csproj" />
+    <Project Path="tests/Ventas.UnitTests/Ventas.UnitTests.csproj" />
+  </Folder>
 </Solution>
