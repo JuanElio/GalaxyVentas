@@ -1,6 +1,15 @@
-# CLAUDE.md
 
-Este archivo proporciona orientación a Claude Code (claude.ai/code) para trabajar con el código de este repositorio.
+# Proyecto Ventas
+- API REST en ASP.NET Core .NET 10, Clean Architecture.
+- Esquema de BD: Docs/database/BDVentas.sql (SQL Server). No inventar tablas ni columnas.
+- Domain no depende de nada. Application solo depende de Domain.
+- Usar DTOs; nunca exponer entidades de EF en los controllers.
+- Validaciones con FluentValidation; errores con ProblemDetails (RFC 7807).
+- Métodos async con CancellationToken.
+- Cada servicio nuevo debe tener pruebas unitarias en tests/Ventas.UnitTests.
+- Comentarios y mensajes de error en español.
+
+
 
 ## Stack
 
