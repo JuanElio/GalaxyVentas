@@ -1,0 +1,31 @@
+# Build
+[Bb]in/
+[Oo]bj/
+[Dd]ebug/
+[Rr]elease/
+[Ll]og/
+[Ll]ogs/
+
+# IDE
+.vs/
+.vscode/
+.idea/
+*.user
+*.suo
+*.userprefs
+
+# Tests / coverage
+TestResults/
+coverage*/
+*.coverage
+*.trx
+
+# NuGet
+*.nupkg
+packages/
+
+# Secrets / local
+appsettings.*.local.json
+*.env
+.DS_Store
+Thumbs.db
