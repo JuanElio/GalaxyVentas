@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Consultas de ventas</title>
+  <link rel="stylesheet" href="assets/estilos.css">
+</head>
+<body>
+  <header class="barra">
+    <a class="marca" href="index.html">GalaxyVentas <span class="tag-proto">Prototipo</span></a>
+    <nav>
+      <a href="index.html">Inicio</a>
+      <a href="registrar-venta.html">Registrar venta</a>
+      <a href="consultas.html" aria-current="page">Consultas</a>
+      <a href="reporte.html">Reporte</a>
+    </nav>
+    <div class="sesion">
+      <span id="sesion-info"></span>
+      <button id="toggle-anot" class="btn btn-sec btn-sm" type="button">Ocultar anotaciones</button>
+    </div>
+  </header>
+
+  <main class="contenedor">
+    <div class="titulo-pagina">
+      <h1>Consultas</h1>
+      <p class="sub">Venta por número de transacción o comprobante por serie y número <span class="rf">RF-15</span> <span class="rf">RF-16</span> <span class="rf">RN-19</span></p>
+    </div>
+
+    <section class="tarjeta">
+      <div class="pestanas" role="tablist">
+        <button class="pestana" role="tab" id="tab-venta" aria-selected="true" aria-controls="panel-venta">Venta</button>
+        <button class="pestana" role="tab" id="tab-comp" aria-selected="false" aria-controls="panel-comp">Comprobante</button>
+      </div>
+
+      <form id="panel-venta" role="tabpanel" aria-labelledby="tab-venta" class="fila-form" autocomplete="off">
+        <div class="campo">
+          <label for="q-trans">N.º de transacción</label>
+          <input id="q-trans" inputmode="numeric" placeholder="Ej.: 50229">
+        </div>
+        <div class="campo"><button class="btn" type="submit">Buscar</button></div>
+      </form>
+
+      <form id="panel-comp" role="tabpanel" aria-labelledby="tab-comp" class="fila-form" autocomplete="off" hidden>
+        <div class="campo">
+          <label for="q-serie">Serie</label>
+          <select id="q-serie"></select>
+        </div>
+        <div class="campo">
+          <label for="q-numero">Número</label>
+          <input id="q-numero" inputmode="numeric" placeholder="Ej.: 0000845">
+        </div>
+        <div class="campo"><button class="btn" type="submit">Buscar</button></div>
+      </form>
+
+      <div id="resultado"></div>
+    </section>
+
+    <section class="tarjeta">
+      <h2>Ventas registradas <span class="nota-proto" style="margin:0">Ayuda del prototipo: ejemplos de este punto de venta + las registradas en esta sesión. La transacción 50232 es de otro punto de venta (403).</span></h2>
+      <div class="tabla-scroll">
+        <table class="tabla">
+          <thead><tr>
+            <th>Transacción</th><th>Fecha</th><th>Cliente</th><th>Comprobante</th><th class="num">Total</th><th></th>
+          </tr></thead>
+          <tbody id="tbody-ventas"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <script src="assets/comun.js"></script>
+  <script>
+    const $ = id => document.getElementById(id);
+    const ventas = todasLasVentas();
+
+    // ---- Pestañas ----
+    const pestanas = [['tab-venta', 'panel-venta'], ['tab-comp', 'panel-comp']];
+    pestanas.forEach(([tab, panel]) => {
+      $(tab).addEventListener('click', () => {
+        pestanas.forEach(([t, p]) => {
+          $(t).setAttribute('aria-selected', String(t === tab));
+          $(p).hidden = p !== panel;
+        });
+        $('resultado').innerHTML = '';
+      });
+    });
+
+    // Series del punto de venta del usuario (RN-13, RN-19)
+    $('q-serie').innerHTML = DATOS.catalogos.tiposComprobante
+      .map(t => serieDe(t.valor, USUARIO.puntoVenta))
+      .map(serie => `<option value="${serie}">${serie} · ${descCatalogo('tiposComprobante', serie.charAt(0))}</option>`).join('');
+
+    // ---- Búsquedas ----
+    const noEncontrado = msg => `<div class="aviso aviso-err"><b>404 · No encontrado.</b> ${esc(msg)} <span class="rf">RF-19</span></div>`;
+    const prohibido = () => `<div class="aviso aviso-err"><b>403 · Acceso denegado.</b> La venta pertenece a otro punto de venta. <span class="rf">RN-19</span> <span class="rf">RF-19</span></div>`;
+
+    $('panel-venta').addEventListener('submit', e => {
+      e.preventDefault();
+      const n = Number($('q-trans').value.trim());
+      const v = ventas.find(x => x.numCodTransaccion === n);
+      $('resultado').innerHTML = !v ? noEncontrado(`No existe una venta activa con número de transacción ${$('q-trans').value.trim() || '(vacío)'}.`)
+        : !esDeMiPuntoVenta(v) ? prohibido()
+        : renderVenta(v);
+    });
+
+    $('panel-comp').addEventListener('submit', e => {
+      e.preventDefault();
+      const serie = $('q-serie').value;
+      const numero = Number($('q-numero').value.trim());
+      const v = ventas.find(x => x.comprobante.serie === serie && x.comprobante.numero === numero);
+      $('resultado').innerHTML = !v ? noEncontrado(`No existe el comprobante ${serie}-${$('q-numero').value.trim() || '(vacío)'}.`)
+        : !esDeMiPuntoVenta(v) ? prohibido()
+        : renderComprobante(v);
+    });
+
+    // ---- Resultados ----
+    // La venta muestra los 4 decimales grabados; el comprobante, 2 (P-11)
+    const tablaPago = (v, formato = fmt4) => {
+      const p = v.pago; // un solo medio de pago por el total (RN-16)
+      return `
+      <div class="tabla-scroll"><table class="tabla">
+        <thead><tr><th>Medio</th><th>Banco</th><th>N.º operación</th><th>Tarjeta</th><th class="num">Monto</th></tr></thead>
+        <tbody><tr>
+          <td>${descCatalogo('mediosPago', p.medio)}</td>
+          <td>${p.banco ? esc(descBanco(p.banco)) : '—'}</td><td>${p.operacion ? esc(p.operacion) : '—'}</td>
+          <td>${p.tipoTarjeta ? descCatalogo('tiposTarjeta', p.tipoTarjeta) : '—'}</td>
+          <td class="num">${formato(p.monto)}</td></tr></tbody>
+      </table></div>`;
+    };
+
+    function renderVenta(v) {
+      return `
+        <h3>Venta N.º ${v.numCodTransaccion} <span class="rf">RF-15</span></h3>
+        <dl class="ficha">
+          <dt>Fecha</dt><dd>${fechaHora(new Date(v.fecha))}</dd>
+          <dt>Cliente</dt><dd>${esc(v.cliente.nombre)} (${esc(v.cliente.tipoDoc)} ${esc(v.cliente.numDoc)})</dd>
+          <dt>Punto de venta / canal</dt><dd>${v.puntoVenta.codigo} · ${v.canal.codigo} ${esc(v.canal.descripcion)}</dd>
+          <dt>Comprobante</dt><dd><a href="comprobante.html?t=${v.numCodTransaccion}">${c(v).tipoDescripcion} ${c(v).numeroCompleto}</a></dd>
+          <dt>Registrado por</dt><dd>${esc(v.usuario)}</dd>
+        </dl>
+        <h3>Líneas</h3>
+        <div class="tabla-scroll"><table class="tabla">
+          <thead><tr><th>Línea</th><th>Artículo</th><th class="num">Cant.</th><th class="num">Tarifa</th><th class="num">Valor venta</th><th class="num">IGV</th><th class="num">Subtotal (con IGV)</th></tr></thead>
+          <tbody>${v.lineas.map(l => `<tr>
+            <td>${l.linea}</td><td><span class="codigo">${l.codigo}</span> ${esc(l.descripcion)}</td>
+            <td class="num">${l.cantidad}</td><td class="num">${fmt4(l.precio)}</td>
+            <td class="num">${fmt4(l.bruto)}</td><td class="num">${fmt4(l.igv)}</td><td class="num">${fmt4(l.subTotal)}</td></tr>`).join('')}</tbody>
+          <tfoot><tr><td colspan="4">Cabecera: subtotal · IGV · bruto <span class="rf">RN-04</span></td>
+            <td class="num">${fmt4(v.totales.subTotal)}</td><td class="num">${fmt4(v.totales.igv)}</td><td class="num">${fmt4(v.totales.bruto)}</td></tr></tfoot>
+        </table></div>
+        <h3>Medio de pago</h3>
+        ${tablaPago(v)}`;
+    }
+
+    function renderComprobante(v) {
+      const comp = c(v);
+      return `
+        <h3>${comp.tipoDescripcion} ${comp.numeroCompleto} <span class="rf">RF-16</span></h3>
+        <dl class="ficha">
+          <dt>Código</dt><dd class="codigo">${comp.numCodComprobante}</dd>
+          <dt>Fecha de emisión</dt><dd>${fechaHora(new Date(comp.fecha))}</dd>
+          <dt>Cliente (al emitir)</dt><dd>${esc(v.cliente.nombre)} · ${esc(v.cliente.tipoDoc)} ${esc(v.cliente.numDoc)} <span class="rf">RF-11</span></dd>
+          <dt>Importe total</dt><dd><b>${fmt(v.totales.total)}</b></dd>
+          <dt>Monto pagado</dt><dd>${fmt(comp.montoPagado)} <span class="p">P-22</span></dd>
+          <dt>Venta de origen</dt><dd>N.º ${v.numCodTransaccion}</dd>
+        </dl>
+        <h3>Pago asignado <span class="rf">RF-13</span></h3>
+        ${tablaPago(v, fmt2)}
+        <div class="acciones"><a class="btn btn-sec" href="comprobante.html?t=${v.numCodTransaccion}">Ver comprobante completo</a></div>`;
+    }
+
+    const c = v => v.comprobante;
+
+    // ---- Lista de ayuda ----
+    $('tbody-ventas').innerHTML = ventas.filter(esDeMiPuntoVenta).reverse().map(v => `<tr>
+        <td class="codigo">${v.numCodTransaccion}</td>
+        <td>${fechaHora(new Date(v.fecha))}</td>
+        <td>${esc(v.cliente.nombre)}</td>
+        <td class="codigo">${c(v).numeroCompleto}</td>
+        <td class="num">${fmt(v.totales.total)}</td>
+        <td><button class="btn btn-sec btn-sm" type="button" data-ver="${v.numCodTransaccion}">Ver</button></td>
+      </tr>`).join('');
+
+    $('tbody-ventas').addEventListener('click', e => {
+      const n = Number(e.target.dataset.ver);
+      if (!n) return;
+      $('tab-venta').click();
+      $('q-trans').value = n;
+      $('panel-venta').requestSubmit();
+      $('resultado').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+
+    // Abrir directamente ?t=<transacción>
+    const t = new URLSearchParams(location.search).get('t');
+    if (t) {
+      $('q-trans').value = t;
+      $('panel-venta').requestSubmit();
+    }
+  </script>
+</body>
+</html>

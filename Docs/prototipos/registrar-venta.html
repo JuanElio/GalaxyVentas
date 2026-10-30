@@ -1,0 +1,587 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Registrar venta</title>
+  <link rel="stylesheet" href="assets/estilos.css">
+</head>
+<body>
+  <header class="barra">
+    <a class="marca" href="index.html">GalaxyVentas <span class="tag-proto">Prototipo</span></a>
+    <nav>
+      <a href="index.html">Inicio</a>
+      <a href="registrar-venta.html" aria-current="page">Registrar venta</a>
+      <a href="consultas.html">Consultas</a>
+      <a href="reporte.html">Reporte</a>
+    </nav>
+    <div class="sesion">
+      <span id="sesion-info"></span>
+      <button id="toggle-anot" class="btn btn-sec btn-sm" type="button">Ocultar anotaciones</button>
+    </div>
+  </header>
+
+  <main class="contenedor">
+    <div class="titulo-pagina">
+      <h1>Registrar venta</h1>
+      <p class="sub">Venta, comprobante y pago en una sola operación <span class="rf">RF-04</span> <span class="rf">RN-15</span></p>
+    </div>
+
+    <div class="contexto">
+      <span>Punto de venta: <b id="ctx-pv"></b></span>
+      <span>Canal: <b id="ctx-canal"></b></span>
+      <span>Moneda: <b id="ctx-moneda"></b> <span class="rf">RN-21</span></span>
+      <span>Tipo de orden: <b id="ctx-orden"></b> <span class="rf">RF-04</span></span>
+      <span>Almacén: <b id="ctx-almacen"></b> <span class="p">P-13</span></span>
+      <span>Usuario: <b id="ctx-usuario"></b> <span class="rf">RF-18</span> <span class="rf">RF-20</span></span>
+    </div>
+
+    <div class="grid-venta">
+      <div class="col-principal">
+
+        <!-- 1. Cliente -->
+        <section class="tarjeta" aria-labelledby="h-cliente">
+          <h2 id="h-cliente">1. Cliente <span class="rf">RF-02</span> <span class="rf">RF-22</span></h2>
+          <form id="form-cliente" class="fila-form" autocomplete="off">
+            <div class="campo">
+              <label for="num-doc">Número de documento (DNI / RUC)</label>
+              <input id="num-doc" inputmode="numeric" placeholder="Ej.: 45678912 o 20512345678">
+            </div>
+            <div class="campo"><button class="btn" type="submit">Buscar</button></div>
+          </form>
+          <p class="nota-proto">Datos de prueba: 45678912 (DNI), 20512345678 (RUC), 70123456 (DNI). Cualquier otro número permite registrar un cliente nuevo.</p>
+          <div id="cliente-res"></div>
+
+          <form id="form-nuevo" class="sub-form" autocomplete="off" novalidate hidden>
+            <h3>Registrar cliente nuevo <span class="rf">RF-22</span> <span class="rf">RN-20</span></h3>
+            <div class="fila-form">
+              <div class="campo">
+                <label for="nc-tipo">Tipo de documento <span class="p">P-20</span></label>
+                <select id="nc-tipo"></select>
+              </div>
+              <div class="campo">
+                <label for="nc-num">Número de documento</label>
+                <input id="nc-num" inputmode="numeric" maxlength="11">
+              </div>
+              <div class="campo">
+                <label for="nc-persona">Tipo de persona <span class="p">P-20</span></label>
+                <input id="nc-persona" disabled>
+              </div>
+            </div>
+            <div id="nc-natural" class="fila-form">
+              <div class="campo">
+                <label for="nc-nombres">Nombres</label>
+                <input id="nc-nombres" maxlength="128">
+              </div>
+              <div class="campo">
+                <label for="nc-apellidos">Apellidos</label>
+                <input id="nc-apellidos" maxlength="128">
+              </div>
+            </div>
+            <div id="nc-juridica" class="campo" hidden>
+              <label for="nc-razon">Razón social</label>
+              <input id="nc-razon" maxlength="128">
+            </div>
+            <div class="campo">
+              <label for="nc-dir">Dirección de facturación <span id="nc-dir-req"></span></label>
+              <input id="nc-dir" maxlength="128">
+            </div>
+            <div class="fila-form">
+              <div class="campo">
+                <label for="nc-tel">Teléfono (opcional)</label>
+                <input id="nc-tel" inputmode="tel" maxlength="15">
+              </div>
+              <div class="campo">
+                <label for="nc-email">Correo (opcional)</label>
+                <input id="nc-email" type="email" maxlength="128">
+              </div>
+            </div>
+            <div class="fila-form">
+              <button class="btn" type="submit">Registrar cliente</button>
+              <button id="nc-cancelar" class="btn btn-sec" type="button">Cancelar</button>
+            </div>
+            <p class="nota-proto">DNI: 8 dígitos, persona natural. RUC: 11 dígitos; si empieza por 20 es persona jurídica (razón social), si no, persona natural con negocio. Con RUC la dirección es obligatoria.</p>
+            <div id="nc-errores" class="aviso aviso-err" role="alert"></div>
+          </form>
+        </section>
+
+        <!-- 2. Artículos -->
+        <section class="tarjeta" aria-labelledby="h-art">
+          <h2 id="h-art">2. Artículos <span class="rf">RF-01</span> <span class="rf">RF-06</span> <span class="rf">RF-07</span></h2>
+          <div class="campo">
+            <label for="buscar-art">Buscar por código o descripción</label>
+            <input id="buscar-art" placeholder="Ej.: cuaderno, ART-0003" autocomplete="off">
+          </div>
+          <div class="tabla-scroll">
+            <table class="tabla">
+              <thead>
+                <tr>
+                  <th>Código</th>
+                  <th>Descripción</th>
+                  <th>Und.</th>
+                  <th class="num">Precio <span class="p">P-15</span></th>
+                  <th class="num">Stock <span class="rf">RN-09</span></th>
+                  <th class="num">Cant.</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="tbody-art"></tbody>
+            </table>
+          </div>
+          <p class="nota-proto">Solo se listan artículos activos con tarifa vigente para el canal (RN-06). El precio no incluye IGV (P-15).</p>
+          <div id="aviso-art" class="aviso aviso-err" role="alert"></div>
+        </section>
+
+        <!-- 3. Detalle -->
+        <section class="tarjeta" aria-labelledby="h-det">
+          <h2 id="h-det">3. Detalle de la venta <span class="rf">RF-05</span> <span class="rf">RN-04</span> <span class="rf">RN-05</span></h2>
+          <div class="tabla-scroll">
+            <table class="tabla">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Artículo</th>
+                  <th class="num">Cant.</th>
+                  <th class="num">Tarifa</th>
+                  <th class="num">Valor venta <span class="p">P-15</span></th>
+                  <th class="num">IGV 18%</th>
+                  <th class="num">Subtotal (con IGV)</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="tbody-lineas"></tbody>
+              <tfoot id="tfoot-lineas"></tfoot>
+            </table>
+          </div>
+          <p class="nota-proto">Los importes los calcula el sistema; el operador solo ingresa artículo y cantidad. Como en el procedimiento de referencia, el subtotal de la línea incluye el IGV (RN-04). Un artículo no se repite: al agregarlo de nuevo se suma la cantidad. Aquí se ven los 4 decimales con que se graba; el comprobante se muestra con 2 (P-11).</p>
+        </section>
+      </div>
+
+      <aside class="col-lateral">
+        <!-- 4. Comprobante -->
+        <section class="tarjeta" aria-labelledby="h-comp">
+          <h2 id="h-comp">4. Comprobante <span class="rf">RF-09</span> <span class="rf">RF-10</span></h2>
+          <div class="campo">
+            <label>Tipo de comprobante <span class="rf">RF-03</span></label>
+            <div class="radios" id="radios-tipo"></div>
+          </div>
+          <div class="fila-form">
+            <div class="campo">
+              <label for="forma-pago">Forma de pago <span class="p">P-05</span></label>
+              <select id="forma-pago" disabled></select>
+            </div>
+            <div class="campo">
+              <label>Serie y número</label>
+              <input id="prev-numero" disabled>
+            </div>
+          </div>
+          <p class="nota-proto">Serie = letra del tipo de comprobante + punto de venta (P-14). El número es el próximo correlativo guardado en la impresora, con 7 dígitos, y se asigna al registrar (RN-13). Factura exige cliente con RUC (RN-14, P-08).</p>
+        </section>
+
+        <!-- 5. Medio de pago -->
+        <section class="tarjeta" aria-labelledby="h-pago">
+          <h2 id="h-pago">5. Medio de pago <span class="rf">RF-12</span> <span class="rf">RF-13</span> <span class="rf">RF-14</span></h2>
+          <div id="form-pago"></div>
+          <p class="nota-proto">Un solo medio de pago por el total de la venta: el monto no se ingresa (RN-16, P-21). En soles (RN-21). Tarjeta, depósito y cheque exigen banco y número de operación; la tarjeta, además, el tipo crédito o débito (P-09, RN-22).</p>
+        </section>
+
+        <!-- Resumen -->
+        <section class="tarjeta resumen" aria-labelledby="h-res">
+          <h2 id="h-res">Resumen</h2>
+          <dl>
+            <dt>Op. gravada (base imponible)</dt><dd id="r-subtotal"></dd>
+            <dt>IGV (18%) <span class="rf">RN-03</span></dt><dd id="r-igv"></dd>
+            <dt class="total">Total a cobrar</dt><dd class="total" id="r-total"></dd>
+            <div class="separador"></div>
+            <dt>Medio de pago</dt><dd id="r-medio"></dd>
+          </dl>
+          <button id="btn-registrar" class="btn btn-bloque" type="button">Registrar venta</button>
+          <p class="nota-proto">Se envía por POST (jQuery) con la cookie de sesión y el token antifalsificación (RF-18, RNF-06).</p>
+          <div id="errores" class="aviso aviso-err" role="alert"></div>
+        </section>
+      </aside>
+    </div>
+  </main>
+
+  <script src="assets/comun.js"></script>
+  <script>
+    const $ = id => document.getElementById(id);
+    const { catalogos, bancos } = DATOS;
+
+    const estado = {
+      cliente: null,
+      lineas: [], // { codigo, cantidad }
+      pago: { medio: 'EF', banco: '', operacion: '', tipoTarjeta: '' }, // un solo medio, por el total (RN-16)
+      tipo: 'B'
+    };
+
+    // ---- Contexto ----
+    $('ctx-pv').textContent = `${DATOS.puntoVenta.codigo} · ${DATOS.puntoVenta.descripcion}`;
+    $('ctx-canal').textContent = `${DATOS.canal.codigo} · ${DATOS.canal.descripcion}`;
+    $('ctx-moneda').textContent = `${DATOS.moneda.descripcion} (${DATOS.moneda.codigo})`;
+    $('ctx-orden').textContent = `${DATOS.tipoOrden.codigo} · ${DATOS.tipoOrden.descripcion}`;
+    $('ctx-almacen').textContent = DATOS.almacen.codigo;
+    $('ctx-usuario').textContent = `${USUARIO.nombre} (${USUARIO.login})`;
+
+    // ---- 1. Cliente ----
+    const fichaCliente = c => `
+      <dl class="ficha">
+        <dt>Código</dt><dd class="codigo">${c.codigo}</dd>
+        <dt>Documento</dt><dd>${esc(c.tipoDoc)} ${esc(c.numDoc)}</dd>
+        <dt>Nombre / razón social</dt><dd><b>${esc(c.nombre)}</b></dd>
+        <dt>Dirección de facturación</dt><dd>${esc(c.direccion) || '—'}</dd>
+      </dl>
+      <p class="nota-proto">Estos datos se copian al comprobante al emitirlo (RF-11).</p>`;
+
+    $('form-cliente').addEventListener('submit', e => {
+      e.preventDefault();
+      const num = $('num-doc').value.trim();
+      const c = todosLosClientes().find(x => x.numDoc === num);
+      estado.cliente = c || null;
+      $('form-nuevo').hidden = true;
+      if (!num) {
+        $('cliente-res').innerHTML = '<div class="aviso aviso-err">Ingrese un número de documento.</div>';
+      } else if (!c) {
+        $('cliente-res').innerHTML = `
+          <div class="aviso aviso-err"><b>404</b> · No se encontró un cliente activo con documento ${esc(num)}.</div>
+          <div class="acciones" style="margin-top:10px">
+            <button id="btn-nuevo-cliente" class="btn btn-sm" type="button" data-num="${esc(num)}">Registrar cliente nuevo</button>
+          </div>`;
+      } else {
+        $('cliente-res').innerHTML = fichaCliente(c);
+      }
+      renderComprobante();
+    });
+
+    // ---- 1.1 Registrar cliente (RF-22) ----
+    const tiposDoc = catalogos.tiposDocumento;
+    $('nc-tipo').innerHTML = tiposDoc.map(t => `<option value="${t.valor}">${t.descripcion}</option>`).join('');
+    const tipoDocSel = () => tiposDoc.find(t => t.valor === $('nc-tipo').value);
+
+    // P-20: DNI → natural; RUC 20… → jurídica; RUC 10… → natural con negocio
+    const tipoPersona = (tipoDoc, num) =>
+      tipoDoc.descripcion === 'DNI' ? 'Natural' : num.startsWith('20') ? 'Jurídica' : 'Natural con negocio';
+
+    function actualizarFormNuevo() {
+      const td = tipoDocSel();
+      const persona = tipoPersona(td, $('nc-num').value.trim());
+      $('nc-persona').value = persona;
+      $('nc-natural').hidden = persona === 'Jurídica';
+      $('nc-juridica').hidden = persona !== 'Jurídica';
+      $('nc-dir-req').textContent = td.descripcion === 'RUC' ? '' : '(opcional)';
+      $('nc-num').maxLength = td.longitud;
+    }
+
+    $('cliente-res').addEventListener('click', e => {
+      if (e.target.id !== 'btn-nuevo-cliente') return;
+      const num = e.target.dataset.num;
+      $('form-nuevo').reset();
+      $('nc-tipo').value = (tiposDoc.find(t => t.longitud === num.length) || tiposDoc[0]).valor;
+      $('nc-num').value = num;
+      $('nc-errores').innerHTML = '';
+      actualizarFormNuevo();
+      $('form-nuevo').hidden = false;
+      $('nc-nombres').focus();
+    });
+    $('nc-tipo').addEventListener('change', actualizarFormNuevo);
+    $('nc-num').addEventListener('input', actualizarFormNuevo);
+    $('nc-cancelar').addEventListener('click', () => { $('form-nuevo').hidden = true; });
+
+    function validarCliente(d) {
+      const errores = [];
+      if (!d.num) errores.push({ campo: 'numDocumento', mensaje: 'El número de documento es obligatorio.' });
+      else if (!new RegExp(`^\\d{${d.tipoDoc.longitud}}$`).test(d.num))
+        errores.push({ campo: 'numDocumento', mensaje: `El ${d.tipoDoc.descripcion} debe tener ${d.tipoDoc.longitud} dígitos.` });
+      if (d.persona === 'Jurídica') {
+        if (!d.razonSocial) errores.push({ campo: 'razonSocial', mensaje: 'La razón social es obligatoria.' });
+      } else {
+        if (!d.nombres) errores.push({ campo: 'nombres', mensaje: 'Los nombres son obligatorios.' });
+        if (!d.apellidos) errores.push({ campo: 'apellidos', mensaje: 'Los apellidos son obligatorios.' });
+      }
+      if (d.tipoDoc.descripcion === 'RUC' && !d.direccion)
+        errores.push({ campo: 'direccionFacturacion', mensaje: 'La dirección de facturación es obligatoria para RUC.' });
+      if (d.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(d.email))
+        errores.push({ campo: 'email', mensaje: 'El correo no tiene un formato válido.' });
+      return errores;
+    }
+
+    $('form-nuevo').addEventListener('submit', e => {
+      e.preventDefault();
+      const tipoDoc = tipoDocSel();
+      const num = $('nc-num').value.trim();
+      const d = {
+        tipoDoc, num, persona: tipoPersona(tipoDoc, num),
+        nombres: $('nc-nombres').value.trim(), apellidos: $('nc-apellidos').value.trim(),
+        razonSocial: $('nc-razon').value.trim(), direccion: $('nc-dir').value.trim(),
+        telefono: $('nc-tel').value.trim(), email: $('nc-email').value.trim()
+      };
+
+      const errores = validarCliente(d);
+      if (errores.length) return void ($('nc-errores').innerHTML = htmlProblema(400, errores));
+
+      const clientes = todosLosClientes();
+      if (clientes.some(c => c.tipoDoc === tipoDoc.descripcion && c.numDoc === num)) // RN-20
+        return void ($('nc-errores').innerHTML = htmlProblema(409, [{ mensaje: `Ya existe un cliente activo con ${tipoDoc.descripcion} ${num}.` }]));
+
+      const registrados = sesion.leer('clientesRegistrados', []);
+      const cliente = {
+        codigo: Math.max(...clientes.map(c => c.codigo)) + 1, // IDENTITY en la BD
+        tipoDoc: tipoDoc.descripcion, numDoc: num, tipoPersona: d.persona,
+        nombre: d.persona === 'Jurídica' ? d.razonSocial : `${d.nombres} ${d.apellidos}`,
+        nombres: d.nombres, apellidos: d.apellidos, razonSocial: d.razonSocial,
+        direccion: d.direccion, telefono: d.telefono, email: d.email
+      };
+      sesion.guardar('clientesRegistrados', [...registrados, cliente]);
+
+      estado.cliente = cliente;
+      $('form-nuevo').hidden = true;
+      $('num-doc').value = num;
+      $('cliente-res').innerHTML = `
+        <div class="aviso aviso-ok"><b>201 · Cliente registrado</b> con código ${cliente.codigo}. <span class="rf">RF-22</span> <span class="rf">RF-17</span></div>
+        ${fichaCliente(cliente)}`;
+      renderComprobante();
+    });
+
+    // ---- 2. Artículos ----
+    const avisoArt = msg => { $('aviso-art').textContent = msg; };
+
+    function renderArticulos() {
+      const q = $('buscar-art').value.trim().toLowerCase();
+      const lista = DATOS.articulos.filter(a => !q || a.codigo.toLowerCase().includes(q) || a.descripcion.toLowerCase().includes(q));
+      $('tbody-art').innerHTML = lista.length ? lista.map(a => {
+        const stock = stockDisponible(a.codigo);
+        const chip = stock <= 0 ? 'chip chip-err' : stock < 10 ? 'chip chip-warn' : 'chip';
+        return `<tr>
+          <td class="codigo">${a.codigo}</td>
+          <td>${esc(a.descripcion)}</td>
+          <td>${a.unidad}</td>
+          <td class="num">${fmt(a.precio)}</td>
+          <td class="num"><span class="${chip}">${stock}</span></td>
+          <td class="num"><input type="number" min="1" step="1" value="1" aria-label="Cantidad de ${a.codigo}" data-cant="${a.codigo}" ${stock <= 0 ? 'disabled' : ''}></td>
+          <td><button class="btn btn-sm" type="button" data-agregar="${a.codigo}" ${stock <= 0 ? 'disabled title="Sin stock"' : ''}>Agregar</button></td>
+        </tr>`;
+      }).join('') : '<tr><td colspan="7" class="vacio">No hay artículos que coincidan.</td></tr>';
+    }
+
+    $('buscar-art').addEventListener('input', renderArticulos);
+    $('tbody-art').addEventListener('click', e => {
+      const codigo = e.target.dataset.agregar;
+      if (!codigo) return;
+      const cant = Number(document.querySelector(`[data-cant="${codigo}"]`).value);
+      agregarLinea(codigo, cant);
+    });
+
+    function agregarLinea(codigo, cantidad) {
+      if (!(cantidad > 0) || !Number.isInteger(cantidad)) return avisoArt('La cantidad debe ser un número entero mayor que 0 (RN-08).');
+      const existente = estado.lineas.find(l => l.codigo === codigo);
+      const total = (existente ? existente.cantidad : 0) + cantidad;
+      const stock = stockDisponible(codigo);
+      if (total > stock) return avisoArt(`Stock insuficiente para ${codigo}: disponible ${stock}, solicitado ${total} (RN-10).`);
+      if (existente) existente.cantidad = total;
+      else estado.lineas.push({ codigo, cantidad });
+      avisoArt('');
+      renderTodo();
+    }
+
+    // ---- 3. Detalle ----
+    const lineasCalculadas = () => estado.lineas.map((l, i) => {
+      const a = articulo(l.codigo);
+      return { ...l, linea: i + 1, descripcion: a.descripcion, precio: a.precio, ...calcularLinea(l.cantidad, a.precio) };
+    });
+
+    function renderLineas() {
+      const ls = lineasCalculadas();
+      $('tbody-lineas').innerHTML = ls.length ? ls.map(l => `<tr>
+          <td>${l.linea}</td>
+          <td><span class="codigo">${l.codigo}</span><br>${esc(l.descripcion)}</td>
+          <td class="num"><input type="number" min="1" step="1" value="${l.cantidad}" data-linea="${l.codigo}" aria-label="Cantidad línea ${l.linea}"></td>
+          <td class="num">${fmt4(l.precio)}</td>
+          <td class="num">${fmt4(l.bruto)}</td>
+          <td class="num">${fmt4(l.igv)}</td>
+          <td class="num"><b>${fmt4(l.subTotal)}</b></td>
+          <td><button class="btn-icono" type="button" data-quitar="${l.codigo}" aria-label="Quitar ${l.codigo}">×</button></td>
+        </tr>`).join('')
+        : '<tr><td colspan="8" class="vacio">Agregue artículos desde la lista superior.</td></tr>';
+
+      // Cabecera: subtotal = Σ (subtotal − IGV) = base imponible; bruto = Σ subtotales = total (RN-04)
+      const t = totalesDe(ls);
+      $('tfoot-lineas').innerHTML = ls.length ? `<tr>
+          <td colspan="4">Cabecera: subtotal · IGV · bruto</td>
+          <td class="num">${fmt4(t.subTotal)}</td>
+          <td class="num">${fmt4(t.igv)}</td>
+          <td class="num">${fmt4(t.bruto)}</td>
+          <td></td>
+        </tr>` : '';
+    }
+
+    $('tbody-lineas').addEventListener('click', e => {
+      const codigo = e.target.dataset.quitar;
+      if (!codigo) return;
+      estado.lineas = estado.lineas.filter(l => l.codigo !== codigo);
+      renderTodo();
+    });
+    $('tbody-lineas').addEventListener('change', e => {
+      const codigo = e.target.dataset.linea;
+      if (!codigo) return;
+      const linea = estado.lineas.find(l => l.codigo === codigo);
+      const cant = Number(e.target.value);
+      const stock = stockDisponible(codigo);
+      if (!(cant > 0) || !Number.isInteger(cant)) avisoArt('La cantidad debe ser un número entero mayor que 0 (RN-08).');
+      else if (cant > stock) avisoArt(`Stock insuficiente para ${codigo}: disponible ${stock}, solicitado ${cant} (RN-10).`);
+      else { linea.cantidad = cant; avisoArt(''); }
+      renderTodo();
+    });
+
+    // ---- 4. Comprobante ----
+    $('radios-tipo').innerHTML = catalogos.tiposComprobante.map(t => `
+      <label class="radio"><input type="radio" name="tipo" value="${t.valor}" ${t.valor === estado.tipo ? 'checked' : ''}> ${t.descripcion}</label>`).join('');
+    $('radios-tipo').addEventListener('change', e => { estado.tipo = e.target.value; renderComprobante(); });
+    $('forma-pago').innerHTML = catalogos.formasPago.map(f => `<option value="${f.valor}">${f.descripcion}</option>`).join('');
+
+    // RN-13: la impresora guarda el PRÓXIMO número de la serie
+    const serieActual = () => serieDe(estado.tipo, USUARIO.puntoVenta);
+    const siguienteNumero = serie => {
+      const usados = sesion.leer('correlativosSerie', {});
+      return usados[serie] ?? (DATOS.impresoras[serie] || {}).correlativo;
+    };
+
+    function renderComprobante() {
+      const serie = serieActual();
+      $('prev-numero').value = DATOS.impresoras[serie]
+        ? `${numeroComprobante(serie, siguienteNumero(serie))} (provisional)`
+        : `Sin impresora para la serie ${serie}`;
+    }
+
+    // ---- 5. Medio de pago ----
+    const opciones = (lista, sel, vacio) =>
+      (vacio ? `<option value="">${vacio}</option>` : '') +
+      lista.map(x => `<option value="${x.valor ?? x.codigo}" ${(x.valor ?? x.codigo) === sel ? 'selected' : ''}>${x.descripcion}</option>`).join('');
+
+    const medioSel = () => catalogos.mediosPago.find(m => m.valor === estado.pago.medio);
+
+    function renderPago() {
+      const p = estado.pago;
+      const medio = medioSel();
+      $('form-pago').innerHTML = `
+        <div class="fila-form">
+          <div class="campo">
+            <label for="medio">Medio <span class="rf">RF-03</span></label>
+            <select id="medio" data-campo="medio">${opciones(catalogos.mediosPago, p.medio)}</select>
+          </div>
+          <div class="campo">
+            <label for="monto">Monto (S/)</label>
+            <input id="monto" disabled>
+          </div>
+        </div>
+        ${medio.requiereBanco ? `
+        <div class="fila-form">
+          <div class="campo">
+            <label for="banco">Banco</label>
+            <select id="banco" data-campo="banco">${opciones(bancos, p.banco, 'Seleccione…')}</select>
+          </div>
+          <div class="campo">
+            <label for="op">N.º de operación</label>
+            <input id="op" data-campo="operacion" value="${esc(p.operacion)}" maxlength="40">
+          </div>
+        </div>` : ''}
+        ${medio.requiereTarjeta ? `
+        <div class="campo">
+          <label for="tt">Tipo de tarjeta <span class="rf">RN-22</span></label>
+          <select id="tt" data-campo="tipoTarjeta">${opciones(catalogos.tiposTarjeta, p.tipoTarjeta, 'Seleccione…')}</select>
+        </div>` : ''}`;
+      renderResumen();
+    }
+
+    $('form-pago').addEventListener('input', e => {
+      const campo = e.target.dataset.campo;
+      if (campo && campo !== 'medio') estado.pago[campo] = e.target.value;
+    });
+    $('form-pago').addEventListener('change', e => {
+      if (e.target.dataset.campo !== 'medio') return;
+      estado.pago = { medio: e.target.value, banco: '', operacion: '', tipoTarjeta: '' };
+      renderPago();
+    });
+
+    // ---- Resumen ----
+    function renderResumen() {
+      const t = totalesDe(lineasCalculadas());
+      $('r-subtotal').textContent = fmt(t.subTotal);
+      $('r-igv').textContent = fmt(t.igv);
+      $('r-total').textContent = fmt(t.total);
+      $('r-medio').textContent = medioSel().descripcion;
+      if ($('monto')) $('monto').value = fmt2(t.total); // el monto del pago es siempre el total
+    }
+
+    // ---- Registrar (RF-04 … RF-14) ----
+    function validar() {
+      const errores = []; // { status, campo, mensaje }
+      const ls = lineasCalculadas();
+      if (!estado.cliente) errores.push({ status: 400, campo: 'cliente', mensaje: 'Debe seleccionar un cliente.' });
+      if (!ls.length) errores.push({ status: 400, campo: 'lineas', mensaje: 'Debe agregar al menos un artículo.' });
+      if (estado.tipo === 'F' && estado.cliente && estado.cliente.tipoDoc !== 'RUC')
+        errores.push({ status: 422, campo: 'tipoComprobante', mensaje: 'Para emitir factura el cliente debe tener RUC.' });
+      if (!DATOS.impresoras[serieActual()])
+        errores.push({ status: 422, campo: 'tipoComprobante', mensaje: `No existe una impresora activa para la serie ${serieActual()}.` });
+      ls.forEach(l => {
+        const stock = stockDisponible(l.codigo);
+        if (l.cantidad > stock) errores.push({ status: 422, campo: `lineas[${l.linea}]`, mensaje: `Stock insuficiente para ${l.codigo}: disponible ${stock}, solicitado ${l.cantidad}.` });
+      });
+      // RF-12 / RF-14: un solo medio de pago con los datos que exige
+      const p = estado.pago;
+      const medio = medioSel();
+      if (medio.requiereBanco && !p.banco) errores.push({ status: 400, campo: 'pago.banco', mensaje: `El pago con ${medio.descripcion.toLowerCase()} requiere banco.` });
+      if (medio.requiereBanco && !p.operacion.trim()) errores.push({ status: 400, campo: 'pago.operacion', mensaje: `El pago con ${medio.descripcion.toLowerCase()} requiere número de operación.` });
+      if (medio.requiereTarjeta && !p.tipoTarjeta) errores.push({ status: 400, campo: 'pago.tipoTarjeta', mensaje: 'El pago con tarjeta requiere el tipo de tarjeta (crédito o débito).' });
+      return errores;
+    }
+
+    // RF-19: primero los errores de formato (400); si no hay, las reglas de negocio (422)
+    function mostrarProblema(errores) {
+      const hay400 = errores.some(e => e.status === 400);
+      const lista = hay400 ? errores.filter(e => e.status === 400) : errores;
+      $('errores').innerHTML = htmlProblema(hay400 ? 400 : 422, lista);
+    }
+
+    $('btn-registrar').addEventListener('click', () => {
+      const errores = validar();
+      if (errores.length) return mostrarProblema(errores);
+      $('errores').innerHTML = '';
+
+      // Simula la transacción única (RN-15): venta + comprobante + kardex + pago
+      const registradas = sesion.leer('ventasRegistradas', []);
+      const serie = serieActual();
+      const numero = siguienteNumero(serie);
+      const venta = construirVenta({
+        numCodTransaccion: DATOS.ultimaTransaccion + registradas.length + 1,
+        numCodComprobante: DATOS.ultimoComprobante + registradas.length + 1,
+        fecha: new Date().toISOString(),
+        cliente: estado.cliente,
+        tipoComprobante: estado.tipo,
+        numero,
+        items: estado.lineas,
+        pago: { ...estado.pago }
+      });
+
+      const correlativos = sesion.leer('correlativosSerie', {});
+      correlativos[serie] = numero + 1; // RN-13: la impresora queda con el próximo número
+      const consumido = sesion.leer('stockConsumido', {});
+      estado.lineas.forEach(l => { consumido[l.codigo] = (consumido[l.codigo] || 0) + l.cantidad; }); // RF-08
+
+      sesion.guardar('ventasRegistradas', [...registradas, venta]);
+      sesion.guardar('correlativosSerie', correlativos);
+      sesion.guardar('stockConsumido', consumido);
+      location.href = `comprobante.html?t=${venta.numCodTransaccion}&nuevo=1`;
+    });
+
+    function renderTodo() {
+      renderArticulos();
+      renderLineas();
+      renderComprobante();
+      renderResumen();
+    }
+
+    renderTodo();
+    renderPago();
+  </script>
+</body>
+</html>

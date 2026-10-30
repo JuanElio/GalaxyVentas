@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Prototipos GalaxyVentas</title>
+  <link rel="stylesheet" href="assets/estilos.css">
+</head>
+<body data-pagina="indice">
+  <header class="barra">
+    <a class="marca" href="index.html">GalaxyVentas <span class="tag-proto">Prototipo</span></a>
+    <nav>
+      <a href="index.html" aria-current="page">Inicio</a>
+      <a href="registrar-venta.html">Registrar venta</a>
+      <a href="consultas.html">Consultas</a>
+      <a href="reporte.html">Reporte</a>
+    </nav>
+    <div class="sesion">
+      <span id="sesion-info"></span>
+      <button id="toggle-anot" class="btn btn-sec btn-sm" type="button">Ocultar anotaciones</button>
+    </div>
+  </header>
+
+  <main class="contenedor">
+    <div class="titulo-pagina">
+      <h1>Prototipos del Sistema de Ventas de Punto de Venta</h1>
+      <p class="sub">Pantallas de referencia para validar los <a href="../requerimientos-funcionales.md">requerimientos funcionales</a> antes de implementar el sistema.</p>
+    </div>
+
+    <div class="aviso aviso-warn" style="margin:0 0 20px">
+      Prototipo navegable <b>sin servidor</b>: los datos son ficticios y la sesión, las ventas y los clientes registrados se guardan solo en esta pestaña del navegador.
+      Las etiquetas <span class="rf">RF-xx</span> / <span class="rf">RN-xx</span> indican el requerimiento o regla que cubre cada elemento y
+      <span class="p">P-xx</span> un supuesto pendiente de confirmar. Se pueden ocultar con el botón de la barra superior.
+    </div>
+
+    <div class="tarjetas-indice">
+      <a class="tarjeta tarjeta-link" href="login.html">
+        <h2>1. Iniciar sesión</h2>
+        <p>El operador ingresa con usuario y contraseña. Valida usuario activo, vigente, contraseña no expirada y punto de venta asignado.</p>
+        <span class="rf">RF-20</span> <span class="rf">RF-18</span> <span class="rf">RN-18</span>
+      </a>
+      <a class="tarjeta tarjeta-link" href="registrar-venta.html">
+        <h2>2. Registrar venta</h2>
+        <p>Búsqueda o registro de cliente, artículos con precio y stock, detalle con cálculo de IGV, tipo de comprobante, un medio de pago por el total y validaciones.</p>
+        <span class="rf">RF-01…RF-14</span> <span class="rf">RF-22</span> <span class="rf">RF-19</span>
+      </a>
+      <a class="tarjeta tarjeta-link" href="comprobante.html">
+        <h2>3. Comprobante emitido</h2>
+        <p>Resultado de la venta: boleta o factura con serie y correlativo, datos del cliente al emitir, detalle, totales, pago asignado, kardex y trazabilidad.</p>
+        <span class="rf">RF-09</span> <span class="rf">RF-10</span> <span class="rf">RF-11</span> <span class="rf">RF-13</span> <span class="rf">RF-17</span>
+      </a>
+      <a class="tarjeta tarjeta-link" href="consultas.html">
+        <h2>4. Consultas</h2>
+        <p>Búsqueda de una venta por número de transacción o de un comprobante por serie y número, solo del punto de venta del usuario.</p>
+        <span class="rf">RF-15</span> <span class="rf">RF-16</span> <span class="rf">RN-19</span>
+      </a>
+      <a class="tarjeta tarjeta-link" href="reporte.html">
+        <h2>5. Reporte de ventas</h2>
+        <p>Ventas registradas en un rango de fechas, con filtros por comprobante, medio de pago y usuario, totales y recaudado por medio de pago.</p>
+        <span class="rf">RF-21</span> <span class="rf">RN-19</span> <span class="p">P-19</span>
+      </a>
+    </div>
+
+    <section class="tarjeta">
+      <h2>Cobertura de requerimientos</h2>
+      <div class="tabla-scroll">
+        <table class="tabla">
+          <thead>
+            <tr><th>Requerimiento</th><th>Descripción</th><th>Login</th><th>Registrar venta</th><th>Comprobante</th><th>Consultas</th><th>Reporte</th></tr>
+          </thead>
+          <tbody id="tbody-cobertura"></tbody>
+        </table>
+      </div>
+      <p class="nota-proto">RF-17 (auditoría) se resuelve en el servidor; el prototipo solo muestra el usuario y la fecha de registro. RF-18 se simula exigiendo sesión en todas las pantallas salvo este índice; la cookie de sesión y el token antifalsificación de ASP.NET Core MVC se simulan con el almacenamiento de la pestaña.</p>
+    </section>
+
+    <section class="tarjeta">
+      <h2>Escenarios para probar</h2>
+      <div class="tabla-scroll">
+        <table class="tabla">
+          <thead><tr><th>Escenario</th><th>Pasos</th><th>Resultado esperado</th></tr></thead>
+          <tbody>
+            <tr><td>Inicio de sesión correcto</td><td>Login · jperez / Ventas2026</td><td>Entra a «Registrar venta» con su nombre y punto de venta en la barra <span class="rf">RF-20</span></td></tr>
+            <tr><td>Credenciales o usuario no válido</td><td>Login · rtorres (inactivo) o acastro (no vigente) o clave errada</td><td>401 con el mismo mensaje genérico <span class="rf">RN-18</span></td></tr>
+            <tr><td>Contraseña expirada</td><td>Login · lgomez / Ventas2026</td><td>401: la contraseña expiró <span class="p">P-17</span></td></tr>
+            <tr><td>Usuario sin punto de venta</td><td>Login · pvargas / Ventas2026</td><td>403 <span class="rf">RF-20</span></td></tr>
+            <tr><td>Sesión expirada</td><td>Con sesión iniciada · <button id="btn-expirar" class="btn btn-sec btn-sm" type="button">Simular sesión expirada</button></td><td>Vuelve al login con aviso 401 <span class="rf">RF-18</span> <span class="p">P-18</span></td></tr>
+            <tr><td>Venta correcta con boleta</td><td>Cliente 45678912 · agregar ART-0001 × 2 · medio Efectivo · Registrar</td><td>Boleta B0001-0001522 por S/ 20.06: línea con valor 17.00, IGV 3.06 y subtotal 20.06 <span class="rf">RF-05</span> <span class="rf">RN-13</span></td></tr>
+            <tr><td>Registrar cliente nuevo</td><td>Buscar 41234567 · «Registrar cliente nuevo» · nombres y apellidos · Registrar</td><td>201, el cliente queda seleccionado para la venta <span class="rf">RF-22</span></td></tr>
+            <tr><td>Cliente con datos inválidos</td><td>Registrar cliente con RUC de 9 dígitos o RUC 20… sin razón social ni dirección</td><td>400 con los campos faltantes <span class="rf">RF-22</span></td></tr>
+            <tr><td>Cliente duplicado</td><td>En el formulario de cliente nuevo cambiar el número a 70123456 · Registrar</td><td>409: ya existe un cliente activo <span class="rf">RN-20</span></td></tr>
+            <tr><td>Factura a cliente con DNI</td><td>Cliente 45678912 · tipo Factura · Registrar</td><td>422: el cliente debe tener RUC <span class="rf">RN-14</span></td></tr>
+            <tr><td>Stock insuficiente</td><td>Agregar ART-0003 × 4 (stock 3)</td><td>Aviso de stock insuficiente <span class="rf">RN-10</span></td></tr>
+            <tr><td>Artículo sin stock</td><td>Buscar ART-0005</td><td>Botón «Agregar» deshabilitado</td></tr>
+            <tr><td>Monto del pago</td><td>Agregar artículos y revisar el medio de pago</td><td>El monto no se puede editar: siempre es el total <span class="rf">RN-16</span></td></tr>
+            <tr><td>Pago con tarjeta sin datos</td><td>Medio «Tarjeta» sin banco, operación ni tipo · Registrar</td><td>400 con los campos faltantes <span class="p">P-09</span> <span class="rf">RN-22</span></td></tr>
+            <tr><td>Factura con tarjeta</td><td>Cliente 20512345678 · Factura · Tarjeta, banco, operación y tipo Crédito · Registrar</td><td>Factura F0001-0000846 con un pago por el total, estado Cancelado y kardex VENTA <span class="rf">RF-13</span> <span class="rf">RF-08</span></td></tr>
+            <tr><td>Stock tras la venta</td><td>Registrar una venta y volver a «Registrar venta»</td><td>El stock del artículo baja en la cantidad vendida <span class="rf">RF-08</span></td></tr>
+            <tr><td>Consulta inexistente</td><td>Consultas · transacción 99999</td><td>404 no encontrado <span class="rf">RF-19</span></td></tr>
+            <tr><td>Venta de otro punto de venta</td><td>Consultas · transacción 50232</td><td>403 acceso denegado <span class="rf">RN-19</span></td></tr>
+            <tr><td>Reporte del periodo</td><td>Reporte · rango por defecto (últimos 31 días)</td><td>3 ventas de ejemplo + las registradas; no incluye la de la Tienda Norte <span class="rf">RF-21</span></td></tr>
+            <tr><td>Reporte filtrado</td><td>Reporte · usuario mlopez, o medio de pago Tarjeta</td><td>Solo las ventas que cumplen el filtro; totales recalculados</td></tr>
+            <tr><td>Reporte sin resultados</td><td>Reporte · tipo Factura · usuario mlopez</td><td>Tabla vacía con totales en 0 (no es error)</td></tr>
+            <tr><td>Rango de fechas inválido</td><td>Reporte · fecha desde mayor que hasta, o rango de más de 31 días</td><td>400 <span class="p">P-19</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <script src="assets/comun.js"></script>
+  <script>
+    const ok = '<span class="marca-ok" aria-label="Sí">✓</span>';
+    // [código, descripción, login, registrar venta, comprobante, consultas, reporte]
+    const cobertura = [
+      ['RF-01', 'Consultar artículos con precio y stock', 0, 1, 0, 0, 0],
+      ['RF-02', 'Buscar cliente', 0, 1, 0, 0, 0],
+      ['RF-03', 'Consultar catálogos', 0, 1, 0, 1, 1],
+      ['RF-04', 'Registrar venta', 0, 1, 0, 0, 0],
+      ['RF-05', 'Calcular importes', 0, 1, 1, 1, 1],
+      ['RF-06', 'Determinar el precio', 0, 1, 0, 0, 0],
+      ['RF-07', 'Validar stock', 0, 1, 0, 0, 0],
+      ['RF-08', 'Registrar movimiento de stock', 0, 1, 0, 0, 0],
+      ['RF-09', 'Generar comprobante', 0, 0, 1, 0, 0],
+      ['RF-10', 'Numerar el comprobante', 0, 1, 1, 0, 0],
+      ['RF-11', 'Conservar datos del cliente', 0, 1, 1, 1, 0],
+      ['RF-12', 'Registrar el medio de pago', 0, 1, 1, 0, 0],
+      ['RF-13', 'Asignar el pago al comprobante', 0, 0, 1, 1, 0],
+      ['RF-14', 'Validar el pago', 0, 1, 0, 0, 0],
+      ['RF-15', 'Consultar una venta', 0, 0, 1, 1, 0],
+      ['RF-16', 'Consultar un comprobante', 0, 0, 0, 1, 0],
+      ['RF-17', 'Auditoría', 0, 1, 1, 1, 1],
+      ['RF-18', 'Validación del usuario (sesión)', 1, 1, 1, 1, 1],
+      ['RF-19', 'Respuestas de error (ProblemDetails)', 1, 1, 0, 1, 1],
+      ['RF-20', 'Iniciar sesión', 1, 0, 0, 0, 0],
+      ['RF-21', 'Reporte de ventas registradas', 0, 0, 0, 0, 1],
+      ['RF-22', 'Registrar cliente', 0, 1, 0, 0, 0]
+    ];
+    document.getElementById('tbody-cobertura').innerHTML = cobertura.map(([rf, desc, ...pantallas]) => `<tr>
+        <td class="codigo">${rf}</td><td>${desc}</td>
+        ${pantallas.map(x => `<td>${x ? ok : ''}</td>`).join('')}
+      </tr>`).join('');
+
+    // Escenario «Sesión expirada»: vence la sesión actual y abre una pantalla protegida
+    document.getElementById('btn-expirar').addEventListener('click', () => {
+      const s = sesion.leer('sesionUsuario', null);
+      if (s) sesion.guardar('sesionUsuario', { ...s, expira: new Date(Date.now() - 1000).toISOString() });
+      location.href = 'registrar-venta.html';
+    });
+  </script>
+</body>
+</html>

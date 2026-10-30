@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Comprobante emitido</title>
+  <link rel="stylesheet" href="assets/estilos.css">
+</head>
+<body>
+  <header class="barra">
+    <a class="marca" href="index.html">GalaxyVentas <span class="tag-proto">Prototipo</span></a>
+    <nav>
+      <a href="index.html">Inicio</a>
+      <a href="registrar-venta.html">Registrar venta</a>
+      <a href="consultas.html">Consultas</a>
+      <a href="reporte.html">Reporte</a>
+    </nav>
+    <div class="sesion">
+      <span id="sesion-info"></span>
+      <button id="toggle-anot" class="btn btn-sec btn-sm" type="button">Ocultar anotaciones</button>
+    </div>
+  </header>
+
+  <main class="contenedor">
+    <div id="aviso-nuevo"></div>
+    <div id="doc"></div>
+  </main>
+
+  <script src="assets/comun.js"></script>
+  <script>
+    const params = new URLSearchParams(location.search);
+    const ventas = ventasDelPuntoVenta(); // RN-19: una venta de otro punto de venta no se muestra
+    const t = Number(params.get('t'));
+    const v = ventas.find(x => x.numCodTransaccion === t) || ventas[ventas.length - 1];
+    const c = v.comprobante;
+
+    if (params.get('nuevo')) {
+      document.getElementById('aviso-nuevo').innerHTML = `
+        <div class="aviso aviso-ok" style="max-width:860px;margin:0 auto 16px">
+          <b>201 · Venta registrada.</b> Transacción N.º ${v.numCodTransaccion}, comprobante ${c.numeroCompleto}.
+          Stock y correlativo actualizados en la misma transacción <span class="rf">RN-15</span>
+        </div>`;
+    }
+
+    const filasDetalle = v.lineas.map(l => `<tr>
+        <td>${l.linea}</td>
+        <td class="codigo">${l.codigo}</td>
+        <td>${esc(l.descripcion)}</td>
+        <td>${l.unidad}</td>
+        <td class="num">${l.cantidad}</td>
+        <td class="num">${fmt2(l.precio)}</td>
+        <td class="num">${fmt2(l.bruto)}</td>
+        <td class="num">${fmt2(l.igv)}</td>
+        <td class="num">${fmt2(l.subTotal)}</td>
+      </tr>`).join('');
+
+        const p = v.pago; // un solo medio de pago por el total (RN-16)
+    const filaPago = `<tr>
+        <td>${descCatalogo('mediosPago', p.medio)}</td>
+        <td>${p.banco ? esc(descBanco(p.banco)) : '—'}</td>
+        <td>${p.operacion ? esc(p.operacion) : '—'}</td>
+        <td>${p.tipoTarjeta ? descCatalogo('tiposTarjeta', p.tipoTarjeta) : '—'}</td>
+        <td class="num">${fmt2(p.monto)}</td>
+      </tr>`;
+
+    document.getElementById('doc').innerHTML = `
+      <article class="tarjeta doc">
+        <div class="doc-cab">
+          <div class="doc-emisor">
+            <h2>GalaxyVentas</h2>
+            <p>${esc(v.puntoVenta.descripcion)} · Punto de venta ${v.puntoVenta.codigo}</p>
+            <p>Zona de venta ${esc(v.puntoVenta.zonaVenta)}</p>
+          </div>
+          <div class="doc-numero">
+            <div class="tipo">${c.tipoDescripcion} de venta</div>
+            <div class="serie">${c.numeroCompleto}</div>
+            <div><span class="rf">RF-10</span> <span class="p">P-14</span></div>
+          </div>
+        </div>
+
+        <div class="doc-datos">
+          <div><span>Cliente <i class="rf">RF-11</i></span>${esc(v.cliente.nombre)}</div>
+          <div><span>Documento</span>${esc(v.cliente.tipoDoc)} ${esc(v.cliente.numDoc)}</div>
+          <div><span>Dirección</span>${esc(v.cliente.direccion)}</div>
+          <div><span>Fecha de emisión</span>${fechaHora(new Date(c.fecha))}</div>
+          <div><span>Forma de pago</span>${descCatalogo('formasPago', c.formaPago)}</div>
+          <div><span>Moneda</span>${DATOS.moneda.descripcion} (${DATOS.moneda.codigo}) <i class="rf">RN-21</i></div>
+          <div><span>Estado <i class="rf">RF-09</i></span><span class="chip" style="display:inline-block;text-transform:none;letter-spacing:0;font-size:.75rem">Cancelado</span></div>
+        </div>
+
+        <h3>Detalle <span class="rf">RF-09</span> <span class="p">P-11</span></h3>
+        <div class="tabla-scroll">
+          <table class="tabla">
+            <thead><tr>
+              <th>Ítem</th><th>Código</th><th>Descripción</th><th>Und.</th>
+              <th class="num">Cant.</th><th class="num">P. unit.</th><th class="num">Valor venta</th><th class="num">IGV</th><th class="num">Subtotal (con IGV)</th>
+            </tr></thead>
+            <tbody>${filasDetalle}</tbody>
+          </table>
+        </div>
+
+        <div class="resumen doc-totales" style="margin-top:14px">
+          <dl>
+            <dt>Op. gravada <i class="rf">RN-04</i></dt><dd>${fmt(v.totales.subTotal)}</dd>
+            <dt>Descuentos <i class="p">P-03</i></dt><dd>${fmt(v.totales.descuento)}</dd>
+            <dt>IGV (18%)</dt><dd>${fmt(v.totales.igv)}</dd>
+            <dt class="total">Importe total</dt><dd class="total">${fmt(v.totales.total)}</dd>
+          </dl>
+        </div>
+
+        <h3>Medio de pago <span class="rf">RF-12</span> <span class="rf">RF-13</span></h3>
+        <div class="tabla-scroll">
+          <table class="tabla">
+            <thead><tr>
+              <th>Medio</th><th>Banco</th><th>N.º operación</th><th>Tarjeta</th><th class="num">Monto asignado</th>
+            </tr></thead>
+            <tbody>${filaPago}</tbody>
+            <tfoot><tr><td colspan="4">Monto pagado (numMontoPagado) <span class="p">P-22</span></td><td class="num">${fmt2(c.montoPagado)}</td></tr></tfoot>
+          </table>
+        </div>
+
+        <h3>Trazabilidad <span class="rf">RF-15</span> <span class="rf">RF-17</span></h3>
+        <dl class="ficha">
+          <dt>Transacción</dt><dd><a href="consultas.html?t=${v.numCodTransaccion}">N.º ${v.numCodTransaccion}</a></dd>
+          <dt>Código de comprobante</dt><dd class="codigo">${c.numCodComprobante} (también en la cabecera de la venta)</dd>
+          <dt>Ítems ↔ líneas</dt><dd>${c.movimientos.map(m => `ítem ${m.item} ↔ línea ${m.linea}`).join(' · ')} <span class="p">P-04</span></dd>
+          <dt>Kardex <i class="rf">RF-08</i></dt><dd>${v.kardex.map(k => `${k.codigo} ${k.tipo} ${k.cantidad}`).join(' · ')}</dd>
+          <dt>Canal / almacén / tipo de orden</dt><dd>${v.canal.codigo} · ${v.almacen.codigo} · ${v.tipoOrden.codigo}</dd>
+          <dt>Registrado por</dt><dd>${esc(v.usuario)} el ${fechaHora(new Date(v.fecha))}</dd>
+        </dl>
+
+        <div class="acciones">
+          <a class="btn" href="registrar-venta.html">Nueva venta</a>
+          <a class="btn btn-sec" href="consultas.html?t=${v.numCodTransaccion}">Ver en consultas</a>
+          <a class="btn btn-sec" href="reporte.html">Reporte de ventas</a>
+          <button class="btn btn-sec" type="button" onclick="window.print()">Imprimir vista</button>
+        </div>
+        <p class="nota-proto">Los importes se graban con 4 decimales y el comprobante los muestra redondeados a 2 (P-11). La impresión física y el envío a SUNAT están fuera del alcance de la versión 1; el botón solo imprime esta vista.</p>
+      </article>`;
+  </script>
+</body>
+</html>

@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Iniciar sesión</title>
+  <link rel="stylesheet" href="assets/estilos.css">
+</head>
+<body data-pagina="login">
+  <header class="barra">
+    <a class="marca" href="index.html">GalaxyVentas <span class="tag-proto">Prototipo</span></a>
+    <div class="sesion">
+      <button id="toggle-anot" class="btn btn-sec btn-sm" type="button">Ocultar anotaciones</button>
+    </div>
+  </header>
+
+  <main class="contenedor">
+    <div class="login-caja">
+      <div id="aviso"></div>
+
+      <section class="tarjeta" aria-labelledby="h-login">
+        <h1 id="h-login">Iniciar sesión <span class="rf">RF-20</span></h1>
+        <p class="sub">Sistema de ventas del punto de venta</p>
+
+        <form id="form-login" autocomplete="off" novalidate style="margin-top:16px">
+          <div class="campo">
+            <label for="login">Usuario</label>
+            <input id="login" maxlength="16" autocomplete="username" autofocus>
+          </div>
+          <div class="campo">
+            <label for="clave">Contraseña <span class="p">P-02</span></label>
+            <input id="clave" type="password" maxlength="16" autocomplete="current-password">
+          </div>
+          <button class="btn btn-bloque" type="submit">Ingresar</button>
+          <div id="errores" class="aviso aviso-err" role="alert"></div>
+        </form>
+        <p class="nota-proto">
+          Si el usuario no existe, está inactivo, no está vigente o la contraseña es incorrecta, el mensaje es el mismo (RN-18).
+          Al ingresar se crea la cookie de sesión de ASP.NET Core (HttpOnly, Secure, SameSite=Strict), válida 8 h (P-18), con el usuario y su punto de venta de SGP_USUARIO (RN-19). La contraseña no se guarda en la cookie. En el prototipo la cookie se simula con el almacenamiento de la pestaña.
+        </p>
+      </section>
+
+      <section class="tarjeta">
+        <h2>Usuarios de prueba <span class="nota-proto" style="margin:0">contraseña: Ventas2026</span></h2>
+        <div class="tabla-scroll">
+          <table class="tabla">
+            <thead><tr><th>Usuario</th><th>Caso</th><th>Resultado esperado</th></tr></thead>
+            <tbody>
+              <tr><td class="codigo">jperez</td><td>Activo y vigente</td><td>Ingresa</td></tr>
+              <tr><td class="codigo">mlopez</td><td>Activo, clave sin expiración</td><td>Ingresa</td></tr>
+              <tr><td class="codigo">rtorres</td><td>Inactivo</td><td>401 genérico</td></tr>
+              <tr><td class="codigo">acastro</td><td>Vigencia vencida (30/06/2026)</td><td>401 genérico</td></tr>
+              <tr><td class="codigo">lgomez</td><td>Contraseña expirada <span class="p">P-17</span></td><td>401 contraseña expirada</td></tr>
+              <tr><td class="codigo">pvargas</td><td>Sin punto de venta</td><td>403</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <script src="assets/comun.js"></script>
+  <script>
+    const $ = id => document.getElementById(id);
+
+    if (new URLSearchParams(location.search).get('motivo') === 'expirada') {
+      $('aviso').innerHTML = `<div class="aviso aviso-warn" style="margin:0 0 16px">
+        <b>401 · Sesión expirada.</b> Vuelva a iniciar sesión. <span class="rf">RF-18</span> <span class="p">P-18</span></div>`;
+    } else if (sesionActual()) {
+      location.replace('registrar-venta.html');
+    }
+
+    const mostrar = (status, errores) => { $('errores').innerHTML = htmlProblema(status, errores); };
+
+    $('form-login').addEventListener('submit', e => {
+      e.preventDefault();
+      const login = $('login').value.trim();
+      const clave = $('clave').value;
+
+      const faltantes = [];
+      if (!login) faltantes.push({ campo: 'login', mensaje: 'Ingrese el usuario.' });
+      if (!clave) faltantes.push({ campo: 'password', mensaje: 'Ingrese la contraseña.' });
+      if (faltantes.length) return mostrar(400, faltantes);
+
+      const u = DATOS.usuarios.find(x => x.login.toLowerCase() === login.toLowerCase());
+      const hoy = diaLocal(new Date());
+
+      // RN-18: mismo mensaje para cualquier fallo de credenciales o vigencia
+      if (!u || u.clave !== clave || !u.activo || hoy < u.vigenteDesde || hoy > u.vigenteHasta)
+        return mostrar(401, [{ mensaje: 'Usuario o contraseña incorrectos.' }]);
+      if (u.expiraClave && u.expiraClave < hoy) // P-17
+        return mostrar(401, [{ mensaje: 'Su contraseña expiró. Solicite al administrador que la renueve.' }]);
+      if (!u.puntoVenta)
+        return mostrar(403, [{ mensaje: 'El usuario no tiene un punto de venta asignado.' }]);
+
+      // La contraseña no se guarda en la sesión
+      sesion.guardar('sesionUsuario', {
+        login: u.login,
+        nombre: u.nombre,
+        puntoVenta: u.puntoVenta,
+        expira: new Date(Date.now() + HORAS_SESION * 3600 * 1000).toISOString()
+      });
+      location.href = 'registrar-venta.html';
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Reporte de ventas</title>
+  <link rel="stylesheet" href="assets/estilos.css">
+</head>
+<body>
+  <header class="barra">
+    <a class="marca" href="index.html">GalaxyVentas <span class="tag-proto">Prototipo</span></a>
+    <nav>
+      <a href="index.html">Inicio</a>
+      <a href="registrar-venta.html">Registrar venta</a>
+      <a href="consultas.html">Consultas</a>
+      <a href="reporte.html" aria-current="page">Reporte</a>
+    </nav>
+    <div class="sesion">
+      <span id="sesion-info"></span>
+      <button id="toggle-anot" class="btn btn-sec btn-sm" type="button">Ocultar anotaciones</button>
+    </div>
+  </header>
+
+  <main class="contenedor">
+    <div class="titulo-pagina">
+      <h1>Reporte de ventas registradas</h1>
+      <p class="sub">Ventas del punto de venta <b id="ctx-pv"></b> <span class="rf">RF-21</span> <span class="rf">RN-19</span></p>
+    </div>
+
+    <section class="tarjeta no-imprimir" aria-labelledby="h-filtros">
+      <h2 id="h-filtros">Filtros</h2>
+      <form id="form-filtros" class="fila-form" autocomplete="off" novalidate>
+        <div class="campo">
+          <label for="f-desde">Fecha desde</label>
+          <input id="f-desde" type="date">
+        </div>
+        <div class="campo">
+          <label for="f-hasta">Fecha hasta</label>
+          <input id="f-hasta" type="date">
+        </div>
+        <div class="campo">
+          <label for="f-tipo">Tipo de comprobante</label>
+          <select id="f-tipo"></select>
+        </div>
+        <div class="campo">
+          <label for="f-medio">Medio de pago</label>
+          <select id="f-medio"></select>
+        </div>
+        <div class="campo">
+          <label for="f-usuario">Usuario</label>
+          <select id="f-usuario"></select>
+        </div>
+        <div class="campo"><button class="btn" type="submit">Generar reporte</button></div>
+      </form>
+      <p class="nota-proto">El rango de fechas es obligatorio y no puede superar 31 días (P-19). Solo se incluyen ventas del punto de venta del usuario de la sesión (RN-19).</p>
+      <div id="errores" class="aviso aviso-err" role="alert"></div>
+    </section>
+
+    <section id="resultado" class="tarjeta" aria-labelledby="h-res">
+      <h2 id="h-res">Resultado <span class="sub" id="periodo" style="font-weight:400;font-size:.88rem"></span></h2>
+
+      <div class="totales-reporte" id="totales"></div>
+
+      <div class="tabla-scroll">
+        <table class="tabla">
+          <thead><tr>
+            <th>Fecha</th><th>Comprobante</th><th>Cliente</th>
+            <th class="num">Subtotal</th><th class="num">IGV</th><th class="num">Total</th>
+            <th>Medio de pago</th><th>Estado <span class="rf">RF-09</span></th><th>Usuario</th>
+          </tr></thead>
+          <tbody id="tbody-reporte"></tbody>
+          <tfoot id="tfoot-reporte"></tfoot>
+        </table>
+      </div>
+
+      <h3>Recaudado por medio de pago</h3>
+      <div class="tabla-scroll">
+        <table class="tabla" style="max-width:520px">
+          <thead><tr><th>Medio</th><th class="num">Pagos</th><th class="num">Monto</th></tr></thead>
+          <tbody id="tbody-medios"></tbody>
+          <tfoot id="tfoot-medios"></tfoot>
+        </table>
+      </div>
+
+      <div class="acciones">
+        <button class="btn btn-sec" type="button" disabled title="Formato por confirmar (P-19)">Exportar a Excel</button>
+        <button class="btn btn-sec" type="button" disabled title="Formato por confirmar (P-19)">Exportar a PDF</button>
+        <button class="btn btn-sec" type="button" onclick="window.print()">Imprimir vista</button>
+      </div>
+      <p class="nota-proto">La exportación está pendiente de confirmar (P-19). Los totales del reporte son la suma de las filas listadas.</p>
+    </section>
+  </main>
+
+  <script src="assets/comun.js"></script>
+  <script>
+    const $ = id => document.getElementById(id);
+    const { catalogos } = DATOS;
+    const RANGO_MAXIMO = 31; // P-19
+    const ventas = ventasDelPuntoVenta(); // RN-19
+
+    $('ctx-pv').textContent = `${DATOS.puntoVenta.codigo} · ${DATOS.puntoVenta.descripcion}`;
+
+    const conTodos = items => '<option value="">Todos</option>' + items.map(([v, d]) => `<option value="${esc(v)}">${esc(d)}</option>`).join('');
+    $('f-tipo').innerHTML = conTodos(catalogos.tiposComprobante.map(t => [t.valor, t.descripcion]));
+    $('f-medio').innerHTML = conTodos(catalogos.mediosPago.map(m => [m.valor, m.descripcion]));
+    $('f-usuario').innerHTML = conTodos(DATOS.usuarios
+      .filter(u => u.puntoVenta === USUARIO.puntoVenta)
+      .map(u => [u.login, `${u.login} · ${u.nombre}`]));
+
+    const hoy = new Date();
+    $('f-hasta').value = diaLocal(hoy);
+    $('f-desde').value = diaLocal(new Date(hoy.getTime() - (RANGO_MAXIMO - 1) * 86400000));
+
+    const diasEntre = (desde, hasta) => Math.round((Date.parse(hasta) - Date.parse(desde)) / 86400000) + 1;
+    const fechaCorta = dia => dia.split('-').reverse().join('/');
+
+    function validar(f) {
+      const errores = [];
+      if (!f.desde) errores.push({ campo: 'fechaDesde', mensaje: 'La fecha inicial es obligatoria.' });
+      if (!f.hasta) errores.push({ campo: 'fechaHasta', mensaje: 'La fecha final es obligatoria.' });
+      if (f.desde && f.hasta) {
+        if (f.desde > f.hasta) errores.push({ campo: 'fechaDesde', mensaje: 'La fecha inicial no puede ser mayor que la final.' });
+        else if (diasEntre(f.desde, f.hasta) > RANGO_MAXIMO) errores.push({ campo: 'fechaHasta', mensaje: `El rango de fechas no puede superar ${RANGO_MAXIMO} días.` });
+      }
+      return errores;
+    }
+
+    function generar() {
+      const f = { desde: $('f-desde').value, hasta: $('f-hasta').value, tipo: $('f-tipo').value, medio: $('f-medio').value, usuario: $('f-usuario').value };
+      const errores = validar(f);
+      if (errores.length) {
+        $('errores').innerHTML = htmlProblema(400, errores);
+        $('resultado').hidden = true;
+        return;
+      }
+      $('errores').innerHTML = '';
+      $('resultado').hidden = false;
+
+      const filas = ventas
+        .filter(v => {
+          const dia = diaLocal(new Date(v.fecha));
+          return dia >= f.desde && dia <= f.hasta
+            && (!f.tipo || v.comprobante.tipo === f.tipo)
+            && (!f.medio || v.pago.medio === f.medio)
+            && (!f.usuario || v.usuario === f.usuario);
+        })
+        .sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
+
+      render(filas, f);
+    }
+
+    function render(filas, f) {
+      $('periodo').textContent = `· del ${fechaCorta(f.desde)} al ${fechaCorta(f.hasta)}`;
+
+      const subTotal = r4(filas.reduce((s, v) => s + v.totales.subTotal, 0));
+      const igv = r4(filas.reduce((s, v) => s + v.totales.igv, 0));
+      const total = r4(filas.reduce((s, v) => s + v.totales.total, 0));
+
+      $('totales').innerHTML = `
+        <div><span>Comprobantes</span><b>${filas.length}</b></div>
+        <div><span>Subtotal</span><b>${fmt(subTotal)}</b></div>
+        <div><span>IGV</span><b>${fmt(igv)}</b></div>
+        <div><span>Total vendido</span><b>${fmt(total)}</b></div>`;
+
+      $('tbody-reporte').innerHTML = filas.length ? filas.map(v => `<tr>
+          <td>${fechaHora(new Date(v.fecha))}</td>
+          <td>${v.comprobante.tipoDescripcion}<br><a class="codigo" href="comprobante.html?t=${v.numCodTransaccion}">${v.comprobante.numeroCompleto}</a></td>
+          <td>${esc(v.cliente.nombre)}<br><span class="codigo">${esc(v.cliente.tipoDoc)} ${esc(v.cliente.numDoc)}</span></td>
+          <td class="num">${fmt(v.totales.subTotal)}</td>
+          <td class="num">${fmt(v.totales.igv)}</td>
+          <td class="num"><b>${fmt(v.totales.total)}</b></td>
+          <td>${descCatalogo('mediosPago', v.pago.medio)}</td>
+          <td><span class="chip">Cancelado</span></td>
+          <td class="codigo">${esc(v.usuario)}</td>
+        </tr>`).join('')
+        : '<tr><td colspan="9" class="vacio">No hay ventas registradas con los filtros seleccionados.</td></tr>';
+
+      $('tfoot-reporte').innerHTML = `<tr>
+          <td colspan="3">Totales (${filas.length} comprobantes)</td>
+          <td class="num">${fmt(subTotal)}</td><td class="num">${fmt(igv)}</td><td class="num">${fmt(total)}</td>
+          <td colspan="3"></td>
+        </tr>`;
+
+      // Recaudado por medio de pago (cada venta tiene un solo medio por el total, RN-16)
+      const porMedio = {};
+      filas.forEach(({ pago }) => {
+        const m = porMedio[pago.medio] || (porMedio[pago.medio] = { pagos: 0, monto: 0 });
+        m.pagos += 1;
+        m.monto = r4(m.monto + pago.monto);
+      });
+      const medios = Object.entries(porMedio);
+      $('tbody-medios').innerHTML = medios.length ? medios.map(([medio, m]) => `<tr>
+          <td>${descCatalogo('mediosPago', medio)}</td><td class="num">${m.pagos}</td><td class="num">${fmt(m.monto)}</td>
+        </tr>`).join('')
+        : '<tr><td colspan="3" class="vacio">Sin pagos en el periodo.</td></tr>';
+      const recaudado = r4(medios.reduce((s, [, m]) => s + m.monto, 0));
+      $('tfoot-medios').innerHTML = `<tr><td colspan="2">Total recaudado</td><td class="num">${fmt(recaudado)}</td></tr>`;
+    }
+
+    $('form-filtros').addEventListener('submit', e => {
+      e.preventDefault();
+      generar();
+    });
+
+    generar();
+  </script>
+</body>
+</html>
