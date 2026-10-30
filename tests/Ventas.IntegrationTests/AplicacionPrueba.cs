@@ -4,7 +4,10 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
+using Ventas.Application.Comun;
+using Ventas.Application.Maestros;
 using Ventas.Application.Seguridad;
+using Ventas.Domain.Maestros;
 using Ventas.Domain.Seguridad;
 
 namespace Ventas.IntegrationTests;
@@ -18,12 +21,28 @@ public sealed partial class AplicacionPrueba : WebApplicationFactory<Program>
 
     public UsuariosEnMemoria Usuarios { get; } = new();
 
+    public ClientesEnMemoria Clientes { get; } = new();
+
     protected override void ConfigureWebHost(IWebHostBuilder builder) =>
         builder.ConfigureTestServices(services =>
         {
             services.AddSingleton<IUsuarioRepository>(Usuarios);
             services.AddSingleton<IVerificadorClave>(Usuarios);
+            services.AddSingleton<IClienteRepository>(Clientes);
+            services.AddSingleton<IUnitOfWork>(Clientes);
         });
+
+    /// <summary>Cliente HTTP con sesión iniciada, cabecera AJAX y token antifalsificación.</summary>
+    public async Task<HttpClient> CrearClienteAjaxConSesionAsync(string login)
+    {
+        Usuarios.Agregar(login);
+        var cliente = CrearCliente();
+        await IniciarSesionAsync(cliente, login);
+        var token = await ObtenerTokenAsync(cliente, "/");
+        cliente.DefaultRequestHeaders.Add("X-Requested-With", "XMLHttpRequest");
+        cliente.DefaultRequestHeaders.Add("RequestVerificationToken", token);
+        return cliente;
+    }
 
     public HttpClient CrearCliente() => CreateClient(new WebApplicationFactoryClientOptions
     {
@@ -54,6 +73,30 @@ public sealed partial class AplicacionPrueba : WebApplicationFactory<Program>
 
     [GeneratedRegex("name=\"__RequestVerificationToken\" type=\"hidden\" value=\"([^\"]+)\"")]
     private static partial Regex TokenRegex();
+}
+
+public sealed class ClientesEnMemoria : IClienteRepository, IUnitOfWork
+{
+    private readonly ConcurrentBag<Cliente> _clientes = [];
+
+    public void Agregar(Cliente cliente) => _clientes.Add(cliente);
+
+    public Task<IReadOnlyList<Cliente>> BuscarActivosPorDocumentoAsync(string numeroDocumento, CancellationToken ct) =>
+        Task.FromResult<IReadOnlyList<Cliente>>(_clientes.Where(c => c.NumeroDocumento == numeroDocumento).ToList());
+
+    public Task<bool> ExisteActivoAsync(string tipoDocumento, string numeroDocumento, CancellationToken ct) =>
+        Task.FromResult(_clientes.Any(c => c.TipoDocumento == tipoDocumento && c.NumeroDocumento == numeroDocumento));
+
+    public Task<Cliente?> ObtenerActivoAsync(long codigo, CancellationToken ct) =>
+        Task.FromResult(_clientes.FirstOrDefault(c => c.Id == codigo));
+
+    public Task AgregarAsync(Cliente cliente, CancellationToken ct)
+    {
+        _clientes.Add(cliente);
+        return Task.CompletedTask;
+    }
+
+    public Task GuardarCambiosAsync(CancellationToken ct) => Task.CompletedTask;
 }
 
 public sealed class UsuariosEnMemoria : IUsuarioRepository, IVerificadorClave

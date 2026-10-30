@@ -23,7 +23,18 @@ public static class RegistroServiciosWeb
         services
             .AddControllersWithViews(opciones =>
                 // Valida el token en todo POST, PUT y DELETE
-                opciones.Filters.Add(new AutoValidateAntiforgeryTokenAttribute()));
+                opciones.Filters.Add(new AutoValidateAntiforgeryTokenAttribute()))
+            .ConfigureApiBehaviorOptions(opciones =>
+                // Cuerpo JSON ilegible en una acción [ApiController]: mismo formato que los errores de validación
+                opciones.InvalidModelStateResponseFactory = contexto =>
+                    new BadRequestObjectResult(new ValidationProblemDetails(contexto.ModelState)
+                    {
+                        Status = StatusCodes.Status400BadRequest,
+                        Title = "Los datos enviados no son válidos.",
+                    })
+                    {
+                        ContentTypes = { "application/problem+json" },
+                    });
 
         // Las vistas no codifican tildes ni eñes como entidades HTML
         services.Configure<WebEncoderOptions>(opciones =>

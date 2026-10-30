@@ -157,7 +157,7 @@ POST /Ventas/Registrar (jQuery, JSON RegistrarVentaDto + token antifalsificació
 - `Ventas.UnitTests` referencia solo Domain + Application: probar cálculos de Domain sin mocks y servicios de Application con Moq sobre las interfaces.
 - `Ventas.IntegrationTests` referencia el proyecto web y levanta el host con `WebApplicationFactory`, incluidas la autenticación por cookie y la antifalsificación.
 
-Estado actual: `Ventas.Api` ya es MVC (`Comun/RegistroServiciosWeb.cs`: cookie, antifalsificación global, política de autorización por defecto y `ManejadorExcepciones` → ProblemDetails; jQuery 3.7.1 local en `wwwroot/lib` y `wwwroot/js/site.js`, que envía la cabecera `RequestVerificationToken`). Domain tiene los agregados `Venta` y `Comprobante`, `MedioPago` y los cálculos de importes. Inicio de sesión listo (`CuentaController`, `AutenticacionService`, `IUsuarioActual` en `Ventas.Api/Seguridad`); la cookie se revalida contra `SGP_USUARIO` en cada petición. La contraseña es la propiedad de sombra `Clave` de `UsuarioConfiguration` y solo la lee `VerificadorClave`. Las columnas de auditoría son propiedades de sombra (`MapearAuditoriaSgp()` / `MapearAuditoriaPga()`) que rellena `AuditoriaInterceptor`. Los tests de integración usan `AplicacionPrueba` (usuarios en memoria, sin BD).
+Estado actual: `Ventas.Api` ya es MVC (`Comun/RegistroServiciosWeb.cs`: cookie, antifalsificación global, política de autorización por defecto y `ManejadorExcepciones` → ProblemDetails; jQuery 3.7.1 local en `wwwroot/lib` y `wwwroot/js/site.js`, que envía la cabecera `RequestVerificationToken`). Domain tiene los agregados `Venta` y `Comprobante`, `MedioPago` y los cálculos de importes. Inicio de sesión listo (`CuentaController`, `AutenticacionService`, `IUsuarioActual` en `Ventas.Api/Seguridad`); la cookie se revalida contra `SGP_USUARIO` en cada petición. La contraseña es la propiedad de sombra `Clave` de `UsuarioConfiguration` y solo la lee `VerificadorClave`. Las columnas de auditoría son propiedades de sombra (`MapearAuditoriaSgp()` / `MapearAuditoriaPga()`) que rellena `AuditoriaInterceptor`. Maestros listos: `ClienteService`, `ArticuloService` (precio + stock), `CatalogoService` y `IStockService`; acciones JSON `[ApiController]` con ruta `[controller]/[action]` (necesaria para que OpenAPI las documente). Los tests de integración usan `AplicacionPrueba` (usuarios y clientes en memoria); `ConsultasBaseDatosTests` (`Categoria=BaseDatos`) consulta la BD real en solo lectura y no hace nada si no hay cadena de conexión. Las entidades exponen `Activo` desde el campo `bool? _activo` (`MapearSituacionRegistro()`).
 
 ## Esquema de base de datos
 
@@ -210,11 +210,11 @@ Reglas confirmadas:
   - Cabecera de venta y comprobante: `numMontoBruto = Σ numSubTotal`; `numSubTotal = Σ (numSubTotal − numIGV)`; `numMontoIGV = Σ numIGV`; `numMontoTotal = numSubTotal + numMontoIGV`; descuento y recargo = 0.
   - Detalle del comprobante: `numPrecioUnitario = numTarifa`; `numMontoBruto = numSubTotal + recargo − descuento`.
   - Se graban con 4 decimales y se muestran con 2 en el comprobante y el reporte.
-- **Moneda**: siempre soles (PEN), tipo de cambio 1.
+- **Moneda**: siempre soles, código `SOL` (catálogo 16), tipo de cambio 1.
 - **Catálogos** (`SGP_TABLA` / `SGP_DETALLE_TABLA`, códigos de forma de pago, tipo de comprobante, medio de pago, tipo de tarjeta, estados...): usar solo registros con `chrSituacionRegistro = 'A'`.
 - **Stock por artículo + punto de venta** (sin canal): se calcula sumando `PGA_TRANSACCION_KARDEX.Cantidad` por `CodArticulo` + `CodPuntoVenta`, comparando sin espacios; no se filtra por `CodTarifaCanal` porque el procedimiento de referencia lo graba en NULL. Los movimientos nuevos sí graban `CodTarifaCanal = '01'`. No hay tabla de saldos. No se permite vender más que el stock. `vchCodAlmacen` de la cabecera no determina el stock. El kardex está vacío en la BD actual: hace falta cargar stock para poder vender.
 - **Kardex**: un movimiento por línea con `TipoTransaccion = 'VENTA'`, `Cantidad` negativa, `FechaTransaccion` sin hora, `CodTransaccion = numCodTransaccion`, `Descripcion = 'Salida por venta ' + serie + '-' + número`, `Estado` y `Proceso` vacíos.
-- **Precio**: `SGP_TARIFA` por artículo + canal, vigente cuando la fecha de venta está entre `dtmFecInicio` y `dtmFecCaducidad`.
+- **Precio**: `SGP_TARIFA` por artículo + canal, vigente si `dtmFecInicio` ≤ fecha y la fecha no pasa del día de `dtmFecCaducidad`. `numCantidad` es el tope del tramo: se usa la menor escala ≥ cantidad (si empatan, la de inicio más reciente); `Tarifa.Elegir` en Domain. `SGP_TARIFA` guarda los códigos con espacios a la izquierda: comparar con `Trim()`.
 - **Canal**: fijo `01` (no lo elige el operador); en la cabecera se graba normalizado como `' 01'`.
 - **Almacén** (`vchCodAlmacen`): primer almacén activo (menor código) del punto de venta en `SGP_PUNTO_VENTA_ALMACEN`; sin almacén, se rechaza la venta.
 - **Tipo de orden**: `V01`; `vchTipLiquidacion` = `SGP_TIPO_ORDEN.intCodTipoLiquidacion`. Cabecera con `intEstado = 1`.
@@ -222,10 +222,10 @@ Reglas confirmadas:
 - **Estados**: cabecera `chrSituacionRegistro` `'I'` → `'A'` al emitir; comprobante `vchEstado = '2'` (cancelado), `chrFlagFacturado = 'S'`, `vchFlagMedioPago = 'S'`; medio de pago `vchEstado = '2'`.
 - **Pago**: al contado, **un solo medio de pago por el total** (el operador no ingresa el monto). `vchMedioPago`: `1` efectivo, `2` cheque, `3` tarjeta de débito, `4` tarjeta de crédito, `5` boleta de depósito; `vchTipoTarjeta` en NULL. Cheque, tarjeta y depósito exigen banco y número de operación.
 - **Contraseña**: `SGP_USUARIO.vchPassword` está en texto plano; comparar en tiempo constante y nunca registrarla en logs.
-- **Cliente**: se busca por número de documento; si no existe se puede registrar (DNI 8 dígitos, RUC 11). No puede haber dos clientes activos con el mismo tipo y número de documento. Factura exige RUC.
+- **Cliente**: se busca por número de documento (puede devolver varios: hay duplicados heredados); si no existe se puede registrar (DNI `2` con 8 dígitos, RUC `1` con 11; RUC 20 → persona jurídica `2`, otro → natural `1`). No puede haber dos clientes activos con el mismo tipo y número de documento. Factura exige RUC.
 - Venta, comprobante, kardex y medio de pago se graban en una única transacción de BD.
 
-Pendiente de confirmar (preguntar antes de implementar; detalle en la sección 7 de los requerimientos): selección de tarifa por escala de `numCantidad` (P-06), si se redondea cada línea o solo los totales al mostrar 2 decimales (P-11), pago mixto (P-21) y valores heredados de tipo de cambio y `numMontoPagado` (P-22).
+Pendiente de confirmar (preguntar antes de implementar; detalle en la sección 7 de los requerimientos): si se redondea cada línea o solo los totales al mostrar 2 decimales (P-11), pago mixto (P-21) y valores heredados de tipo de cambio y `numMontoPagado` (P-22).
 
 ## Configuración
 

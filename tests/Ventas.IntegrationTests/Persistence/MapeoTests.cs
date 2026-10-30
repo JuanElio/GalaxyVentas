@@ -32,7 +32,29 @@ public class MapeoTests(AplicacionPrueba app) : IClassFixture<AplicacionPrueba>
         }, columnas);
     }
 
+    [Theory]
+    [InlineData("SGP_USUARIO")]
+    [InlineData("SGP_CLIENTE")]
+    [InlineData("SGP_ARTICULO")]
+    [InlineData("SGP_TARIFA")]
+    [InlineData("SGP_TARIFA_CANAL")]
+    [InlineData("SGP_PUNTO_VENTA")]
+    [InlineData("SGP_BANCO")]
+    [InlineData("SGP_TABLA")]
+    [InlineData("SGP_DETALLE_TABLA")]
+    [InlineData("PGA_TRANSACCION_KARDEX")]
+    public void Modelo_MapeaLasTablasReales(string tabla) =>
+        Assert.Contains($"CREATE TABLE [{tabla}]", ScriptDelModelo());
+
     [Fact]
-    public void Modelo_SeConstruyeSinErrores() =>
-        Assert.Contains("CREATE TABLE [SGP_USUARIO]", ScriptDelModelo());
+    public void Kardex_UsaLasColumnasSinNotacionHungara()
+    {
+        var script = ScriptDelModelo();
+        var kardex = script[script.IndexOf("CREATE TABLE [PGA_TRANSACCION_KARDEX]", StringComparison.Ordinal)..];
+        kardex = kardex[..kardex.IndexOf(");", StringComparison.Ordinal)];
+
+        foreach (var columna in new[] { "[CodArticulo]", "[CodTarifaCanal]", "[CodPuntoVenta]", "[Cantidad]",
+                     "[SituacionRegistro]", "[Creador]", "[FechaCreacion]" })
+            Assert.Contains(columna, kardex);
+    }
 }

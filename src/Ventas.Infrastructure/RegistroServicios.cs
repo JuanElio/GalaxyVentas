@@ -2,7 +2,11 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Ventas.Application.Comun;
+using Ventas.Application.Maestros;
 using Ventas.Application.Seguridad;
+using Ventas.Infrastructure.Inventario;
+using Ventas.Infrastructure.Maestros;
 using Ventas.Infrastructure.Persistence;
 using Ventas.Infrastructure.Seguridad;
 
@@ -21,8 +25,14 @@ public static class RegistroServicios
             .UseSqlServer(cadenaConexion)
             .AddInterceptors(proveedor.GetRequiredService<AuditoriaInterceptor>()));
 
+        services.AddScoped<IUnitOfWork, UnidadTrabajo>();
         services.AddScoped<IUsuarioRepository, UsuarioRepository>();
         services.AddScoped<IVerificadorClave, VerificadorClave>();
+        services.AddScoped<IClienteRepository, ClienteRepository>();
+        services.AddScoped<IArticuloRepository, ArticuloRepository>();
+        services.AddScoped<IPuntoVentaRepository, PuntoVentaRepository>();
+        services.AddScoped<ICatalogoRepository, CatalogoRepository>();
+        services.AddScoped<IStockService, StockService>();
 
         return services;
     }

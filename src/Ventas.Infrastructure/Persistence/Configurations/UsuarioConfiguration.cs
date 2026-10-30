@@ -18,9 +18,7 @@ internal sealed class UsuarioConfiguration : IEntityTypeConfiguration<Usuario>
         builder.Property(u => u.Login).HasColumnName("vchLogin").HasMaxLength(16).IsUnicode(false);
         builder.Property(u => u.Nombre).HasColumnName("vchNombre").HasMaxLength(64).IsUnicode(false);
         builder.Property(u => u.CodigoPuntoVenta).HasColumnName("vchCodPuntoVenta").HasMaxLength(4).IsUnicode(false);
-        builder.Property<bool?>("_activo").HasColumnName("chrSituacionRegistro").HasColumnType("char(1)")
-            .HasConversion(Conversiones.SituacionRegistro);
-        builder.Ignore(u => u.Activo);
+        builder.MapearSituacionRegistro();
         builder.Property(u => u.InicioVigencia).HasColumnName("dtmFechaInicioAct").HasColumnType("datetime");
         builder.Property(u => u.FinVigencia).HasColumnName("dtmFechaFinAct").HasColumnType("datetime");
         builder.Property(u => u.FechaExpiraClave).HasColumnName("dtmFechaExpiraClave").HasColumnType("datetime");

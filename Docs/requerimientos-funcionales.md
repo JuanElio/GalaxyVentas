@@ -12,7 +12,7 @@
 
 | Versión | Fecha | Cambios |
 |---|---|---|
-| 0.5 | 29/10/2026 | Se resuelven P-02 (contraseña en texto plano), P-09 (códigos de medio de pago; débito y crédito son medios distintos, se elimina RN-22), P-10 (`intEstado = 1`), P-13 (primer almacén activo del punto de venta), P-14 (serie `F`/`B`), P-15 (la tarifa incluye IGV: cambia RF-06 y RN-04) y el canal (fijo `01`). El stock se calcula sin canal (RN-09, RF-09). Serie: los puntos de venta se guardan como `' 001'` (RF-11). |
+| 0.5 | 29/10/2026 | Se resuelven P-02 (contraseña en texto plano), P-09 (códigos de medio de pago; débito y crédito son medios distintos, se elimina RN-22), P-10 (`intEstado = 1`), P-13 (primer almacén activo del punto de venta), P-14 (serie `F`/`B`), P-15 (la tarifa incluye IGV: cambia RF-06 y RN-04) y el canal (fijo `01`). El stock se calcula sin canal (RN-09, RF-09). Serie: los puntos de venta se guardan como `' 001'` (RF-11). Se resuelven P-06 (escala de tarifa) y P-20 (códigos de documento y persona); moneda `SOL`. |
 | 0.4 | 29/10/2026 | Los procedimientos almacenados de `StoreProcedure.sql` pasan a ser la referencia de cómo se graban los datos (sección 1). Se ajustan a ellos: cálculo de importes (RF-05, RN-04: el subtotal de la línea incluye IGV) |
 | 0.3 | 29/10/2026 | Se exige el token de acceso en cada llamada (`Authorization: Bearer <token>`): RF-20 devuelve el token; RF-18 agrega criterios de aceptación (401 sin token, token inválido o expirado, o usuario no vigente. Tarjeta de crédito y de débito se registran como un solo medio "tarjeta" con tipo obligatorio. |
 | 0.2 | 28/10/2026 | Se redefine el documento como sistema de ventas de punto de venta . Se agregan RF-20 (iniciar sesión), RF-21 (reporte de ventas registradas) y RF-22 (registrar cliente). |
@@ -94,7 +94,7 @@ El sistema debe permitir buscar un cliente por su número de documento.
 - **Salida:** código de cliente, tipo y número de documento, nombre o razón social, dirección de facturación.
 - **Fuente:** `SGP_CLIENTE` (`vchNumDocumento`, `vchTipDocumento`, `vchNombres`, `vchApellidos`, `vchRazonSocial`, `vchDirecFacturacion`).
 - **Reglas:** RN-01.
-- **Criterios de aceptación:** solo devuelve clientes activos; si no existe, responde *no encontrado* y el operador puede registrarlo (RF-03).
+- **Criterios de aceptación:** solo devuelve clientes activos; si no existe, responde *no encontrado* y el operador puede registrarlo (RF-03). Como la BD tiene documentos repetidos entre clientes activos (datos heredados), devuelve todas las coincidencias (máximo 20, la más reciente primero) para que el operador elija.
 
 #### RF-03 — Registrar cliente
 
@@ -376,8 +376,8 @@ El operador debe poder obtener el reporte de las ventas registradas en su punto 
 | **RN-03** | La tasa de IGV es **0.18**. La tarifa incluye el IGV, que se desglosa en cada línea (`ValorVenta = numSubTotal / 1.18`). |
 | **RN-04** | Convención del procedimiento de referencia: el subtotal de la línea incluye el IGV (`numSubTotal = Cantidad × Tarifa = ValorVenta + numIGV`). En las cabeceras, `numSubTotal = Σ (numSubTotal − numIGV)` de las líneas (base imponible), `numMontoIGV = Σ numIGV` y `numMontoTotal = numSubTotal + numMontoIGV` (detalle en RF-06). |
 | **RN-05** | Todos los importes se manejan con 4 decimales. Los totales de cabecera y comprobante son la suma exacta de sus líneas. |
-| **RN-06** | Una tarifa es vigente si `dtmFecInicio` ≤ fecha de venta ≤ `dtmFecCaducidad`. |
-| **RN-07** | Si hay varias tarifas vigentes para el mismo artículo y canal (por escala `numCantidad`), se aplica la de mayor `numCantidad` que no supere la cantidad vendida **[PENDIENTE P-06]**. |
+| **RN-06** | Una tarifa es vigente si `dtmFecInicio` ≤ fecha de venta y la fecha no pasa del día de `dtmFecCaducidad` (incluido, como en el procedimiento de referencia). |
+| **RN-07** | `numCantidad` es el tope del tramo: se aplica la tarifa vigente con el **menor `numCantidad` mayor o igual** a la cantidad vendida; si hay varias con el mismo tope, la de `dtmFecInicio` más reciente. Si la cantidad supera el tope más alto, no hay precio y la venta se rechaza (P-06). |
 | **RN-08** | La cantidad de cada línea debe ser mayor que 0. |
 | **RN-09** | El stock se lleva por **artículo + punto de venta** y es la suma de `PGA_TRANSACCION_KARDEX.Cantidad` para esa combinación, **sin filtrar por canal**: el canal es fijo (`01`) y los movimientos grabados por el procedimiento de referencia tienen `CodTarifaCanal` en NULL. Los códigos se comparan sin espacios. No existe tabla de saldos. |
 | **RN-10** | No se permite vender más que el stock disponible **[PENDIENTE P-07]**. |
@@ -391,7 +391,7 @@ El operador debe poder obtener el reporte de las ventas registradas en su punto 
 | **RN-18** | Solo pueden iniciar sesión usuarios activos y dentro de su periodo de vigencia (`dtmFechaInicioAct` ≤ hoy ≤ `dtmFechaFinAct`). |
 | **RN-19** | El operador solo vende y consulta en el punto de venta que tiene asignado en `SGP_USUARIO.vchCodPuntoVenta`. El sistema lo obtiene de esa tabla al iniciar sesión; nunca lo recibe en la petición. |
 | **RN-20** | No pueden existir dos clientes activos con el mismo tipo y número de documento. La BD no tiene restricción única, así que la verifica el sistema. |
-| **RN-21** | Todas las ventas, comprobantes y pagos son en soles (PEN) con tipo de cambio 1. |
+| **RN-21** | Todas las ventas, comprobantes y pagos son en soles con tipo de cambio 1. El código de moneda es `SOL` (catálogo 16, como `SGP_TARIFA_CANAL.vchMoneda`). |
 | **RN-22** | *Eliminada en la versión 0.5*: tarjeta de débito (`3`) y de crédito (`4`) son medios de pago distintos (P-09). |
 
 ## 6. Requerimientos no funcionales
@@ -416,7 +416,7 @@ Mientras no se confirmen, la implementación usa el supuesto indicado.
 | **P-03** | Descuentos y recargos por línea (`chrTipDscto0X`, `tipoDscto0X`). | Fuera de la versión 1: descuento y recargo = 0. |
 | **P-04** | Relación venta ↔ comprobante (el modelo permite N:M). | 1 venta = 1 comprobante. |
 | **P-05** | Forma de pago. | Solo contado: el pago cubre el total al registrar la venta. Crédito queda fuera de la versión 1. |
-| **P-06** | Selección de tarifa por escala de `numCantidad`. | RN-07. |
+| **P-06** | Selección de tarifa por escala de `numCantidad`. | **Resuelto** en RN-07: menor escala que cubra la cantidad. |
 | **P-07** | Stock negativo. | No se permite stock negativo (RN-10); el procedimiento de referencia no lo valida. El signo y los valores del kardex quedan **resueltos** por el procedimiento de referencia (RF-09). |
 | **P-08** | Factura exige RUC. | RN-14. |
 | **P-09** | Datos obligatorios por medio de pago. | Tarjeta, cheque y depósito exigen banco y número de operación. **Resuelto**: `vchMedioPago` = `1` efectivo, `2` cheque, `3` tarjeta de débito, `4` tarjeta de crédito, `5` boleta de depósito. Débito y crédito son medios distintos; `vchTipoTarjeta` queda en NULL (se elimina RN-22). |
@@ -430,7 +430,7 @@ Mientras no se confirmen, la implementación usa el supuesto indicado.
 | **P-17** | Contraseña expirada (`dtmFechaExpiraClave`). | Se rechaza el inicio de sesión; el cambio de contraseña queda fuera de la versión 1. Si la columna es NULL, no expira. |
 | **P-18** | Duración de la sesión y bloqueo por intentos fallidos. | Cookie de sesión válida por 8 horas (un turno), sin renovación automática. Sin bloqueo por intentos en la versión 1 (no hay columna para contarlos). |
 | **P-19** | Formato de exportación y rango máximo del reporte. | Consulta en pantalla; exportación a Excel/PDF por confirmar. Rango máximo de 31 días. |
-| **P-20** | Códigos de `vchTipDocumento` y `vchTipPersona`, otros documentos (carné de extranjería, pasaporte) y valores de `vchTipoCliente`, `vchZonaVenta` y `vchEstado` al crear un cliente. | DNI (8 dígitos) y RUC (11 dígitos) según el catálogo de tipos de documento. Las demás columnas quedan en NULL hasta confirmarlas. |
+| **P-20** | Códigos de `vchTipDocumento` y `vchTipPersona`, otros documentos (carné de extranjería, pasaporte) y valores de `vchTipoCliente`, `vchZonaVenta` y `vchEstado` al crear un cliente. | **Resuelto con los catálogos de la BD**: tipo de documento (catálogo 2) `1` RUC, `2` DNI, `3` otros, `4` carné de extranjería; tipo de persona (catálogo 5) `1` natural, `2` jurídica. Solo se registran DNI (8 dígitos) y RUC (11). RUC que empieza con 20 → jurídica (razón social); otro RUC → natural con negocio (nombres y apellidos). Las demás columnas quedan en NULL. |
 | **P-21** | Pago mixto (varios medios de pago en una venta). | El procedimiento de referencia registra un solo medio de pago por el total, y así se define la versión 1 (RN-16). Por confirmar si el negocio necesita pago mixto (p. ej. parte en efectivo y parte con tarjeta). |
 | **P-22** | Valores heredados discutibles de los procedimientos de referencia. | Tipo de cambio: los procedimientos usan 3.25 por defecto; se graba 1 porque todo es en soles (RN-21). `numMontoPagado` del comprobante: los procedimientos lo dejan en 0; se graba el monto pagado (RF-14). Por confirmar que estos cambios no afectan otros procesos que lean esos datos. |
 
