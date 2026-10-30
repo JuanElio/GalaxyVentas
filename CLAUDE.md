@@ -157,7 +157,7 @@ POST /Ventas/Registrar (jQuery, JSON RegistrarVentaDto + token antifalsificació
 - `Ventas.UnitTests` referencia solo Domain + Application: probar cálculos de Domain sin mocks y servicios de Application con Moq sobre las interfaces.
 - `Ventas.IntegrationTests` referencia el proyecto web y levanta el host con `WebApplicationFactory`, incluidas la autenticación por cookie y la antifalsificación.
 
-El proyecto sigue siendo la plantilla inicial (marcadores `Class1.cs`, `WeatherForecast`, `UnitTest1.cs`); ninguna capa tiene código real todavía. `Ventas.Api` se creó con la plantilla de Web API y hay que convertirlo a MVC: registrar `AddControllersWithViews()`, crear `Views/` y `wwwroot/` con jQuery, y configurar la autenticación por cookie y la antifalsificación. `Program.cs` aún no registra los servicios de Application/Infrastructure ni el DbContext.
+Estado actual: `Ventas.Api` ya es MVC (`Comun/RegistroServiciosWeb.cs`: cookie, antifalsificación global, política de autorización por defecto y `ManejadorExcepciones` → ProblemDetails; jQuery 3.7.1 local en `wwwroot/lib` y `wwwroot/js/site.js`, que envía la cabecera `RequestVerificationToken`). Domain tiene los agregados `Venta` y `Comprobante`, `MedioPago` y los cálculos de importes. Inicio de sesión listo (`CuentaController`, `AutenticacionService`, `IUsuarioActual` en `Ventas.Api/Seguridad`); la cookie se revalida contra `SGP_USUARIO` en cada petición. La contraseña es la propiedad de sombra `Clave` de `UsuarioConfiguration` y solo la lee `VerificadorClave`. Las columnas de auditoría son propiedades de sombra (`MapearAuditoriaSgp()` / `MapearAuditoriaPga()`) que rellena `AuditoriaInterceptor`. Los tests de integración usan `AplicacionPrueba` (usuarios en memoria, sin BD).
 
 ## Esquema de base de datos
 
@@ -180,7 +180,7 @@ El proyecto sigue siendo la plantilla inicial (marcadores `Class1.cs`, `WeatherF
 | `pga_cabecera_transaccion_hemeroteca_agregar` | Alta de la cabecera de la venta: `chrSituacionRegistro = 'I'`, tipo de liquidación desde `SGP_TIPO_ORDEN`, normalización de `vchCodTarifaCanal` (si tiene 2 caracteres se antepone un espacio). |
 | `pga_hemeroteca_emitir_comprobante` | Comprobante, serie y correlativo, detalle, `SGP_MOVIMIENTO_TRANSACCION_BS`, kardex y paso de la cabecera a `'A'`. |
 | `pga_hemeroteca_comprobante_cancelar` | Registro del medio de pago («cancelar» = pagar): llama a la emisión y graba un medio de pago por el total. |
-| `pga_mediopago_tipo_tarjeta_listar` | Tipos de tarjeta: catálogo `numCodigo = 114`. |
+| `pga_mediopago_tipo_tarjeta_listar` | Tipos de tarjeta (catálogo `numCodigo = 114`). No se usa: débito y crédito son medios de pago distintos (P-09). |
 | `pga_cliente_obtener_por_clave`, `pga_cliente_listar` | Lectura de clientes. |
 
 Los procedimientos no abren una transacción; el sistema nuevo sí (RN-15). `pga_obtener_impuesto_iva` lee `SGP_DETALLE_IVA`, que no existe en `BDVentas.sql`: no usarlo.
@@ -205,24 +205,27 @@ Reglas confirmadas:
 
 - **Punto de venta**: el de `SGP_USUARIO.vchCodPuntoVenta` del usuario de la sesión; nunca se ingresa. El operador solo vende y consulta en ese punto de venta (403 si no).
 - **IGV = 0.18**. `SGP_IVA` no tiene columna de tasa.
-- **Importes** (convención de los procedimientos de referencia; el subtotal de la línea **incluye** el IGV), 4 decimales (`numeric(15,4)`):
-  - Línea: `ValorVenta = Cantidad × Tarifa`; `numIGV = ValorVenta × 0.18`; `numSubTotal = ValorVenta + numIGV`.
+- **Importes** (convención de los procedimientos de referencia; el subtotal de la línea **incluye** el IGV), 4 decimales (`numeric(15,4)`). La tarifa **ya incluye el IGV** (P-15), así que se desglosa (difiere del procedimiento, que lo suma):
+  - Línea: `numSubTotal = numMontoBruto = Cantidad × Tarifa`; `ValorVenta = round(numSubTotal / 1.18, 4)`; `numIGV = numSubTotal − ValorVenta`.
   - Cabecera de venta y comprobante: `numMontoBruto = Σ numSubTotal`; `numSubTotal = Σ (numSubTotal − numIGV)`; `numMontoIGV = Σ numIGV`; `numMontoTotal = numSubTotal + numMontoIGV`; descuento y recargo = 0.
   - Detalle del comprobante: `numPrecioUnitario = numTarifa`; `numMontoBruto = numSubTotal + recargo − descuento`.
   - Se graban con 4 decimales y se muestran con 2 en el comprobante y el reporte.
 - **Moneda**: siempre soles (PEN), tipo de cambio 1.
 - **Catálogos** (`SGP_TABLA` / `SGP_DETALLE_TABLA`, códigos de forma de pago, tipo de comprobante, medio de pago, tipo de tarjeta, estados...): usar solo registros con `chrSituacionRegistro = 'A'`.
-- **Stock por punto de venta + canal**: se calcula sumando `PGA_TRANSACCION_KARDEX.Cantidad` por `CodArticulo` + `CodPuntoVenta` + `CodTarifaCanal`; no hay tabla de saldos. No se permite vender más que el stock. `vchCodAlmacen` de la cabecera no determina el stock.
+- **Stock por artículo + punto de venta** (sin canal): se calcula sumando `PGA_TRANSACCION_KARDEX.Cantidad` por `CodArticulo` + `CodPuntoVenta`, comparando sin espacios; no se filtra por `CodTarifaCanal` porque el procedimiento de referencia lo graba en NULL. Los movimientos nuevos sí graban `CodTarifaCanal = '01'`. No hay tabla de saldos. No se permite vender más que el stock. `vchCodAlmacen` de la cabecera no determina el stock. El kardex está vacío en la BD actual: hace falta cargar stock para poder vender.
 - **Kardex**: un movimiento por línea con `TipoTransaccion = 'VENTA'`, `Cantidad` negativa, `FechaTransaccion` sin hora, `CodTransaccion = numCodTransaccion`, `Descripcion = 'Salida por venta ' + serie + '-' + número`, `Estado` y `Proceso` vacíos.
 - **Precio**: `SGP_TARIFA` por artículo + canal, vigente cuando la fecha de venta está entre `dtmFecInicio` y `dtmFecCaducidad`.
-- **Tipo de orden**: `V01`; `vchTipLiquidacion` = `SGP_TIPO_ORDEN.intCodTipoLiquidacion`.
-- **Numeración del comprobante**: serie = primer carácter del tipo de comprobante + código del punto de venta, buscada en `SGP_IMPRESORA.vchNumSerie`. `vchCorrelativo` guarda el **próximo** número: el comprobante lo toma y la impresora queda con el valor + 1. `vchNumComprobante` con 7 dígitos y ceros a la izquierda. Incremento atómico dentro de la transacción.
+- **Canal**: fijo `01` (no lo elige el operador); en la cabecera se graba normalizado como `' 01'`.
+- **Almacén** (`vchCodAlmacen`): primer almacén activo (menor código) del punto de venta en `SGP_PUNTO_VENTA_ALMACEN`; sin almacén, se rechaza la venta.
+- **Tipo de orden**: `V01`; `vchTipLiquidacion` = `SGP_TIPO_ORDEN.intCodTipoLiquidacion`. Cabecera con `intEstado = 1`.
+- **Numeración del comprobante**: serie = `F` (factura) o `B` (boleta) + código del punto de venta sin espacios (`' 001'` → `B001`, cabe en `varchar(4)`); la impresora se busca solo por `vchNumSerie` porque su `vchTipComprobante` no es fiable, buscada en `SGP_IMPRESORA.vchNumSerie`. `vchCorrelativo` guarda el **próximo** número: el comprobante lo toma y la impresora queda con el valor + 1. `vchNumComprobante` con 7 dígitos y ceros a la izquierda. Incremento atómico dentro de la transacción.
 - **Estados**: cabecera `chrSituacionRegistro` `'I'` → `'A'` al emitir; comprobante `vchEstado = '2'` (cancelado), `chrFlagFacturado = 'S'`, `vchFlagMedioPago = 'S'`; medio de pago `vchEstado = '2'`.
-- **Pago**: al contado, **un solo medio de pago por el total** (el operador no ingresa el monto). La tarjeta es un solo medio y crédito/débito se indica en `vchTipoTarjeta` (obligatorio, catálogo 114). Tarjeta, cheque y depósito exigen banco y número de operación.
+- **Pago**: al contado, **un solo medio de pago por el total** (el operador no ingresa el monto). `vchMedioPago`: `1` efectivo, `2` cheque, `3` tarjeta de débito, `4` tarjeta de crédito, `5` boleta de depósito; `vchTipoTarjeta` en NULL. Cheque, tarjeta y depósito exigen banco y número de operación.
+- **Contraseña**: `SGP_USUARIO.vchPassword` está en texto plano; comparar en tiempo constante y nunca registrarla en logs.
 - **Cliente**: se busca por número de documento; si no existe se puede registrar (DNI 8 dígitos, RUC 11). No puede haber dos clientes activos con el mismo tipo y número de documento. Factura exige RUC.
 - Venta, comprobante, kardex y medio de pago se graban en una única transacción de BD.
 
-Pendiente de confirmar (preguntar antes de implementar; detalle en la sección 7 de los requerimientos): formato de `SGP_USUARIO.vchPassword` (P-02), selección de tarifa por escala de `numCantidad` (P-06), `intEstado` de la cabecera (P-10), si se redondea cada línea o solo los totales al mostrar 2 decimales (P-11), letra de la serie según el catálogo de tipo de comprobante (P-14), si la tarifa incluye IGV y qué va en `numMontoBruto` de la línea (P-15), pago mixto (P-21), valores heredados de tipo de cambio y `numMontoPagado` (P-22), y si el canal lo elige el operador o es fijo por punto de venta.
+Pendiente de confirmar (preguntar antes de implementar; detalle en la sección 7 de los requerimientos): selección de tarifa por escala de `numCantidad` (P-06), si se redondea cada línea o solo los totales al mostrar 2 decimales (P-11), pago mixto (P-21) y valores heredados de tipo de cambio y `numMontoPagado` (P-22).
 
 ## Configuración
 

@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **Proyecto** | GalaxyVentas — Sistema de ventas de artículos para punto de venta |
-| **Versión** | 0.4 (borrador) |
+| **Versión** | 0.5 (borrador) |
 | **Fecha** | 29/10/2026 |
 | **Base de datos** | `BDVenta` (SQL Server) — esquema en [database/BDVentas.sql](database/BDVentas.sql); procedimientos almacenados de referencia en [database/StoreProcedure.sql](database/StoreProcedure.sql) |
 | **Estado** | Pendiente de validación. Los puntos marcados **[PENDIENTE]** usan un supuesto provisional (sección 7). |
@@ -12,9 +12,10 @@
 
 | Versión | Fecha | Cambios |
 |---|---|---|
-| 0.4 | 29/10/2026 | Los procedimientos almacenados de `StoreProcedure.sql` pasan a ser la referencia de cómo se graban los datos (sección 1). Se ajustan a ellos: cálculo de importes (RF-05, RN-04: el subtotal de la línea incluye IGV), serie y correlativo (RF-10, RN-13), kardex (RF-08, RN-11), comprobante (RF-09), un único medio de pago por el total (RF-12 a RF-14, RN-16), tipo de orden `V01` (RF-04) y estados. Se resuelven P-07, P-12 y P-14 y se actualizan P-09 y P-10; se agregan P-21 (pago mixto) y P-22 (valores heredados). La autenticación pasa de token JWT a cookie de ASP.NET Core MVC con token antifalsificación (RF-18, RF-19, RF-20, RNF-06), y RNF-02 indica la tecnología: ASP.NET Core MVC con vistas Razor y jQuery. |
-| 0.3 | 29/10/2026 | Se exige el token de acceso en cada llamada (`Authorization: Bearer <token>`): RF-20 devuelve el token; RF-18 agrega criterios de aceptación (401 sin token, token inválido o expirado, o usuario no vigente; 403 por punto de venta distinto; usuario y punto de venta tomados del token); se actualizan RF-19 y RNF-06. Se aclara que el punto de venta se obtiene de `SGP_USUARIO.vchCodPuntoVenta` y nunca se ingresa (glosario, sección 4, RF-01, RF-04, RF-18, RN-19). Se separa la moneda de RN-16 en la nueva RN-21 (siempre soles) y se cierra P-16. Se aclara P-11 (4 decimales al grabar, 2 al mostrar). RF-22 responde 409 ante cliente duplicado y RF-19 amplía el 409. RF-15 y RF-16 responden 403 para otro punto de venta. Correcciones de ortografía. Tarjeta de crédito y de débito se registran como un solo medio "tarjeta" con tipo obligatorio (glosario, RF-12, nueva RN-22, P-09). |
-| 0.2 | 28/10/2026 | Se redefine el documento como sistema de ventas de punto de venta (antes "API REST de ventas"); la API queda como requisito no funcional (RNF-02). Se agregan RF-20 (iniciar sesión), RF-21 (reporte de ventas registradas) y RF-22 (registrar cliente); RN-18 a RN-20; RNF-06 (HTTPS y token de sesión); P-17 a P-20. Se actualizan alcance, actores, RF-02, RF-04, RF-18, RF-19 (códigos 401 y 403), P-01 (carga de datos de maestros y clientes), P-02 (formato de contraseña) y fuera de alcance. |
+| 0.5 | 29/10/2026 | Se resuelven P-02 (contraseña en texto plano), P-09 (códigos de medio de pago; débito y crédito son medios distintos, se elimina RN-22), P-10 (`intEstado = 1`), P-13 (primer almacén activo del punto de venta), P-14 (serie `F`/`B`), P-15 (la tarifa incluye IGV: cambia RF-06 y RN-04) y el canal (fijo `01`). El stock se calcula sin canal (RN-09, RF-09). Serie: los puntos de venta se guardan como `' 001'` (RF-11). |
+| 0.4 | 29/10/2026 | Los procedimientos almacenados de `StoreProcedure.sql` pasan a ser la referencia de cómo se graban los datos (sección 1). Se ajustan a ellos: cálculo de importes (RF-05, RN-04: el subtotal de la línea incluye IGV) |
+| 0.3 | 29/10/2026 | Se exige el token de acceso en cada llamada (`Authorization: Bearer <token>`): RF-20 devuelve el token; RF-18 agrega criterios de aceptación (401 sin token, token inválido o expirado, o usuario no vigente. Tarjeta de crédito y de débito se registran como un solo medio "tarjeta" con tipo obligatorio. |
+| 0.2 | 28/10/2026 | Se redefine el documento como sistema de ventas de punto de venta . Se agregan RF-20 (iniciar sesión), RF-21 (reporte de ventas registradas) y RF-22 (registrar cliente). |
 | 0.1 | 27/10/2026 | Versión inicial: RF-01 a RF-19, reglas de negocio RN-01 a RN-17, requerimientos no funcionales RNF-01 a RNF-05, supuestos P-01 a P-16 y fuera de alcance. |
 
 ---
@@ -54,7 +55,7 @@ Anulación de comprobantes, notas de crédito/débito, modificación y baja de c
 |---|---|
 | **Venta / transacción** | Operación comercial con un cliente. Tabla `SGP_CABECERA_TRANSACCION_BS` + `SGP_DETALLE_TRANSACCION_BS`. |
 | **Comprobante** | Documento de venta (boleta o factura) con serie y número. Tabla `SGP_COMPROBANTE_BS` + `SGP_DETALLE_COMPROBANTE_BS`. |
-| **Medio de pago** | Forma en que el cliente paga (efectivo, tarjeta, depósito, etc.). Tabla `SGP_MEDIO_PAGO_BS`. La tarjeta es un solo medio de pago; si es de crédito o de débito se indica con el tipo de tarjeta (`vchTipoTarjeta`). |
+| **Medio de pago** | Forma en que el cliente paga (efectivo, tarjeta, depósito, etc.). Tabla `SGP_MEDIO_PAGO_BS`. Tarjeta de débito y tarjeta de crédito son medios de pago distintos (P-09). |
 | **Punto de venta** | Local o caja donde se vende. Tabla `SGP_PUNTO_VENTA`. Cada operador tiene uno asignado en `SGP_USUARIO.vchCodPuntoVenta`; es el único en el que puede operar (RN-19). |
 | **Canal / tarifa canal** | Lista de precios aplicable (`SGP_TARIFA_CANAL`). El precio de cada artículo depende del canal (`SGP_TARIFA`). |
 | **Kardex** | Registro de movimientos de stock (`PGA_TRANSACCION_KARDEX`). |
@@ -67,9 +68,9 @@ Anulación de comprobantes, notas de crédito/débito, modificación y baja de c
 
 ## 4. Requerimientos funcionales
 
-Cada requerimiento indica las reglas de negocio aplicables (sección 5) y sus criterios de aceptación. Los requerimientos agregados después de la versión 0.1 se numeran a continuación del último (RF-20 en adelante) y se ubican en la sección que les corresponde, para no renumerar los existentes.
+Cada requerimiento indica las reglas de negocio aplicables (sección 5) y sus criterios de aceptación. Los requerimientos agregados después de la versión 0.1 se numeran a continuación del último (RF-21 en adelante) y se ubican en la sección que les corresponde, para no renumerar los existentes.
 
-En todos los requerimientos, **el punto de venta no se ingresa**: es el asignado al usuario en `SGP_USUARIO.vchCodPuntoVenta`, que se obtiene al iniciar sesión (RF-20) y se guarda en la sesión del usuario (RF-18, RN-19).
+En todos los requerimientos, **el punto de venta no se ingresa**: es el asignado al usuario en `SGP_USUARIO.vchCodPuntoVenta`, que se obtiene al iniciar sesión (RF-21) y se guarda en la sesión del usuario (RF-19, RN-19).
 
 ### 4.1 Consulta de maestros
 
@@ -77,12 +78,12 @@ En todos los requerimientos, **el punto de venta no se ingresa**: es el asignado
 
 El sistema debe listar los artículos que se pueden vender en un punto de venta y canal, con su precio vigente y stock disponible.
 
-- **Entrada:** código de canal y texto de búsqueda opcional (código o descripción). El punto de venta es el del usuario (`SGP_USUARIO.vchCodPuntoVenta`).
+- **Entrada:** texto de búsqueda opcional (código o descripción). El punto de venta es el del usuario (`SGP_USUARIO.vchCodPuntoVenta`) y el canal es siempre `01` (no se ingresa).
 - **Salida por artículo:** código, descripción, unidad de medida, precio unitario vigente, stock disponible.
 - **Reglas:** RN-01, RN-06, RN-09.
 - **Criterios de aceptación:**
   - Solo se listan artículos activos que tengan una tarifa vigente para el canal a la fecha actual.
-  - El stock mostrado es el calculado para ese punto de venta y canal.
+  - El stock mostrado es el calculado para ese punto de venta (RN-09).
   - Si el punto de venta o el canal no existe o está inactivo, se responde *no encontrado*.
 
 #### RF-02 — Buscar cliente
@@ -93,9 +94,9 @@ El sistema debe permitir buscar un cliente por su número de documento.
 - **Salida:** código de cliente, tipo y número de documento, nombre o razón social, dirección de facturación.
 - **Fuente:** `SGP_CLIENTE` (`vchNumDocumento`, `vchTipDocumento`, `vchNombres`, `vchApellidos`, `vchRazonSocial`, `vchDirecFacturacion`).
 - **Reglas:** RN-01.
-- **Criterios de aceptación:** solo devuelve clientes activos; si no existe, responde *no encontrado* y el operador puede registrarlo (RF-22).
+- **Criterios de aceptación:** solo devuelve clientes activos; si no existe, responde *no encontrado* y el operador puede registrarlo (RF-03).
 
-#### RF-22 — Registrar cliente
+#### RF-03 — Registrar cliente
 
 Si el cliente no existe, el operador debe poder registrarlo para continuar con la venta.
 
@@ -111,9 +112,9 @@ Si el cliente no existe, el operador debe poder registrarlo para continuar con l
   - Si ya existe un cliente activo con el mismo tipo y número de documento, se rechaza como *conflicto* (409) indicando que ya está registrado.
   - El número de documento cumple el formato de su tipo: DNI de 8 dígitos, RUC de 11 dígitos **[PENDIENTE P-20]**.
   - El tipo de persona se deduce del documento (DNI → natural, RUC → jurídica o natural con negocio) **[PENDIENTE P-20]**.
-  - Se registran los datos de auditoría (RF-17).
+  - Se registran los datos de auditoría (RF-18).
 
-#### RF-03 — Consultar catálogos
+#### RF-04 — Consultar catálogos
 
 El sistema debe devolver los valores activos de un catálogo (formas de pago, tipos de comprobante, medios de pago, monedas, tipos de documento, etc.).
 
@@ -124,46 +125,48 @@ El sistema debe devolver los valores activos de un catálogo (formas de pago, ti
 
 ### 4.2 Registro de la venta
 
-#### RF-04 — Registrar venta
+#### RF-05 — Registrar venta
 
-El sistema debe registrar una venta con sus líneas de detalle, generar el comprobante y registrar el pago en **una sola operación** (RF-04 a RF-14 se ejecutan juntos).
+El sistema debe registrar una venta con sus líneas de detalle, generar el comprobante y registrar el pago en **una sola operación** (RF-05 a RF-15 se ejecutan juntos).
 
 - **Entrada:**
-  - Usuario que registra: se toma de la sesión iniciada (RF-20), no se ingresa.
+  - Usuario que registra: se toma de la sesión iniciada (RF-21), no se ingresa.
   - Punto de venta: no se ingresa; es el asignado al usuario en `SGP_USUARIO.vchCodPuntoVenta` (RN-19).
-  - Canal (tarifa canal).
+  - Canal (tarifa canal): no se ingresa; es siempre `01`.
+  - Almacén (`vchCodAlmacen`): no se ingresa; es el primer almacén activo (menor `vchCodAlmacen`) del punto de venta en `SGP_PUNTO_VENTA_ALMACEN` (P-13). Si no tiene ninguno, la venta se rechaza.
   - Tipo de orden: no se ingresa; es `V01` (valor por defecto del procedimiento de referencia), activo en `SGP_TIPO_ORDEN`.
   - Moneda: no se ingresa; siempre soles (RN-21).
   - Cliente (código).
   - Tipo de comprobante (boleta o factura) y forma de pago.
   - Líneas: código de artículo y cantidad (1 o más).
-  - Pago: un medio de pago y los datos que exige (banco, número de operación, tipo de tarjeta). El monto no se ingresa: es el total de la venta (RN-16).
+  - Pago: un medio de pago y los datos que exige (banco y número de operación). El monto no se ingresa: es el total de la venta (RN-16).
 - **Salida:** número de transacción, comprobante generado (serie, número, fecha, totales) y pago registrado.
 - **Reglas:** RN-01 a RN-16, RN-19, RN-21.
 - **Criterios de aceptación:**
   - Se crea un registro en `SGP_CABECERA_TRANSACCION_BS` y una línea en `SGP_DETALLE_TRANSACCION_BS` por cada artículo, numeradas desde 1 (`numLinTransaccion`).
-  - La cabecera se crea con `chrSituacionRegistro = 'I'` y pasa a `'A'` al emitirse el comprobante, como en el procedimiento de referencia. Como todo ocurre en una sola transacción (RN-15), una venta nunca queda en `'I'`.
+  - La cabecera se crea con `chrSituacionRegistro = 'I'` e `intEstado = 1` (P-10), y pasa a `'A'` al emitirse el comprobante, como en el procedimiento de referencia. Como todo ocurre en una sola transacción (RN-15), una venta nunca queda en `'I'`.
   - El tipo de liquidación (`vchTipLiquidacion`) se toma de `SGP_TIPO_ORDEN.intCodTipoLiquidacion` del tipo de orden.
-  - El código de canal (`vchCodTarifaCanal`) se graba con la normalización del procedimiento de referencia: sin espacios, y si tiene 2 caracteres se antepone un espacio.
+  - El código de canal (`vchCodTarifaCanal`) se graba con la normalización del procedimiento de referencia: sin espacios, y si tiene 2 caracteres se antepone un espacio (`01` → `' 01'`).
   - Un artículo no puede repetirse en dos líneas de la misma venta.
   - La fecha de venta (`dtmFechaVenta`) es la fecha y hora del servidor.
   - Si cualquier validación falla, no se graba nada (RN-15).
 
-#### RF-05 — Calcular importes
+#### RF-06 — Calcular importes
 
 El sistema debe calcular los importes de cada línea y de la cabecera; el operador **no** ingresa importes.
 
-Se sigue la convención del procedimiento de referencia, en la que **el subtotal de la línea incluye el IGV**.
+Se sigue la convención del procedimiento de referencia, en la que **el subtotal de la línea incluye el IGV**. A diferencia del procedimiento, **la tarifa ya incluye el IGV** (P-15), así que el IGV se desglosa en lugar de sumarse.
 
-- **Por línea** (`SGP_DETALLE_TRANSACCION_BS`): `ValorVenta = Cantidad × Tarifa`; `numIGV = ValorVenta × 0.18`; `numSubTotal = ValorVenta + numIGV` (importe de la línea con IGV); `numMontoBruto = ValorVenta` **[PENDIENTE P-15]**.
+- **Por línea** (`SGP_DETALLE_TRANSACCION_BS`): `numSubTotal = Cantidad × Tarifa` (importe de la línea con IGV); `ValorVenta = numSubTotal / 1.18`, redondeado a 4 decimales; `numIGV = numSubTotal − ValorVenta`; `numMontoBruto = Cantidad × Tarifa`.
 - **Cabecera de la venta y del comprobante:** `numMontoBruto = Σ numSubTotal` de las líneas; `numSubTotal = Σ (numSubTotal − numIGV)` (base imponible); `numMontoIGV = Σ numIGV`; `numMontoTotal = numSubTotal + numMontoIGV`; `numMontoDescuento = numMontoRecargo = 0`.
 - **Detalle del comprobante:** `numPrecioUnitario = numTarifa`; `numSubTotal` y `numIGV` iguales a los de la línea; `numMontoBruto = numSubTotal + numMontoRecargo − numMontoDescuento`.
 - **Reglas:** RN-03, RN-04, RN-05.
 - **Criterios de aceptación:**
-  - Para 2 unidades con tarifa 50.0000: línea con IGV 18.0000 y subtotal 118.0000; cabecera con bruto 118.0000, subtotal 100.0000, IGV 18.0000 y total 118.0000.
+  - Para 2 unidades con tarifa 59.0000: línea con subtotal 118.0000 e IGV 18.0000; cabecera con bruto 118.0000, subtotal 100.0000, IGV 18.0000 y total 118.0000.
+  - El total de la venta es siempre Σ (cantidad × tarifa): el desglose del IGV no altera lo que paga el cliente.
   - Los totales de cabecera y comprobante coinciden exactamente con la suma de sus líneas.
 
-#### RF-06 — Determinar el precio
+#### RF-07 — Determinar el precio
 
 El precio unitario de cada línea se toma de la tarifa vigente del artículo para el canal de la venta.
 
@@ -173,16 +176,16 @@ El precio unitario de cada línea se toma de la tarifa vigente del artículo par
   - Si el artículo no tiene tarifa vigente para el canal, la venta se rechaza indicando el artículo.
   - El precio aplicado se guarda en `numTarifa` del detalle de la transacción y en `numPrecioUnitario` del detalle del comprobante.
 
-#### RF-07 — Validar stock
+#### RF-08 — Validar stock
 
-Antes de grabar, el sistema debe verificar que hay stock suficiente de cada artículo en el punto de venta y canal de la venta.
+Antes de grabar, el sistema debe verificar que hay stock suficiente de cada artículo en el punto de venta de la venta (RN-09).
 
 - **Reglas:** RN-09, RN-10.
 - **Criterios de aceptación:**
   - Si la cantidad pedida supera el stock disponible, la venta se rechaza indicando artículo, stock disponible y cantidad pedida.
   - Dos ventas simultáneas del último stock no pueden aprobarse ambas.
 
-#### RF-08 — Registrar movimiento de stock
+#### RF-09 — Registrar movimiento de stock
 
 Por cada línea de la venta, el sistema debe registrar una salida en el kardex.
 
@@ -190,7 +193,8 @@ Por cada línea de la venta, el sistema debe registrar una salida en el kardex.
 
   | Columna | Valor |
   |---|---|
-  | `CodArticulo`, `CodTarifaCanal`, `CodPuntoVenta` | Los de la línea y la venta |
+  | `CodArticulo`, `CodPuntoVenta` | Los de la línea y la venta (punto de venta sin espacios, comparado con `LTRIM/RTRIM`) |
+  | `CodTarifaCanal` | `'01'`. El procedimiento de referencia graba NULL por un error (la variable nunca se asigna); el sistema nuevo graba el canal. |
   | `TipoTransaccion` | `'VENTA'` |
   | `FechaTransaccion` | Fecha de la venta sin hora |
   | `Cantidad` | Cantidad vendida en negativo |
@@ -205,12 +209,12 @@ Por cada línea de la venta, el sistema debe registrar una salida en el kardex.
 
 ### 4.3 Generación del comprobante
 
-#### RF-09 — Generar comprobante
+#### RF-10 — Generar comprobante
 
 Al registrar la venta, el sistema debe generar su comprobante.
 
-- **Cabecera** (`SGP_COMPROBANTE_BS`): cliente, punto de venta, zona de venta (la del punto de venta), forma de pago, tipo de comprobante, serie, número, fecha de emisión (fecha y hora del servidor), importes (RF-05), monto pagado, moneda (soles) y tipo de cambio (1) (RN-21). Además, como en el procedimiento de referencia: `vchEstado = '2'` (cancelado), `chrFlagFacturado = 'S'` y `chrSituacionRegistro = 'A'`.
-- **Detalle** (`SGP_DETALLE_COMPROBANTE_BS`): un ítem por cada línea de la venta (`numItem` igual a `numLinTransaccion`) con artículo, descripción del artículo, unidad, cantidad, precio unitario e importes (RF-05). Las columnas de avisos y publicaciones se graban en 0 o NULL.
+- **Cabecera** (`SGP_COMPROBANTE_BS`): cliente, punto de venta, zona de venta (la del punto de venta), forma de pago, tipo de comprobante, serie, número, fecha de emisión (fecha y hora del servidor), importes (RF-06), monto pagado, moneda (soles) y tipo de cambio (1) (RN-21). Además, como en el procedimiento de referencia: `vchEstado = '2'` (cancelado), `chrFlagFacturado = 'S'` y `chrSituacionRegistro = 'A'`.
+- **Detalle** (`SGP_DETALLE_COMPROBANTE_BS`): un ítem por cada línea de la venta (`numItem` igual a `numLinTransaccion`) con artículo, descripción del artículo, unidad, cantidad, precio unitario e importes (RF-06). Las columnas de avisos y publicaciones se graban en 0 o NULL.
 - **Enlace:** un registro en `SGP_MOVIMIENTO_TRANSACCION_BS` por cada par ítem de comprobante ↔ línea de transacción.
 - **Cabecera de la venta:** se actualiza `numCodComprobante` con el código del comprobante generado y `chrSituacionRegistro = 'A'`.
 - **Reglas:** RN-12, RN-13, RN-14.
@@ -218,11 +222,11 @@ Al registrar la venta, el sistema debe generar su comprobante.
   - Una venta genera exactamente un comprobante **[PENDIENTE P-04]**.
   - Desde la venta se puede llegar a su comprobante (`numCodComprobante` y `SGP_MOVIMIENTO_TRANSACCION_BS`) y viceversa.
 
-#### RF-10 — Numerar el comprobante
+#### RF-11 — Numerar el comprobante
 
 El sistema debe asignar serie y número correlativo al comprobante según el punto de venta y el tipo de comprobante.
 
-- **Fuente:** `SGP_IMPRESORA`, buscando por `vchNumSerie`. Como en el procedimiento de referencia, la serie se forma con el primer carácter del tipo de comprobante seguido del código del punto de venta (p. ej. tipo `B…` en el punto de venta `0001` → serie `B0001`) **[PENDIENTE P-14]**.
+- **Fuente:** `SGP_IMPRESORA`, buscando por `vchNumSerie`. Como en el procedimiento de referencia, la serie se forma con el primer carácter del tipo de comprobante seguido del código del punto de venta sin espacios (p. ej. boleta en el punto de venta `' 001'` → serie `B001`). La letra es `F` para factura y `B` para boleta (P-14). Los códigos de punto de venta se guardan con un espacio inicial (`' 001'`), así que la serie siempre cabe en `vchNumSerie` (`varchar(4)`). La impresora se busca solo por `vchNumSerie`: su `vchTipComprobante` no es fiable (p. ej. la serie `B002` tiene tipo `F`).
 - **Reglas:** RN-13.
 - **Criterios de aceptación:**
   - `vchCorrelativo` guarda el **próximo** número a emitir: el comprobante toma ese valor (si está vacío, 1) y la impresora queda con el valor + 1.
@@ -231,7 +235,7 @@ El sistema debe asignar serie y número correlativo al comprobante según el pun
   - Si la venta falla, el correlativo no avanza.
   - Si no existe una impresora activa con la serie del punto de venta y tipo de comprobante, la venta se rechaza.
 
-#### RF-11 — Conservar los datos del cliente en el comprobante
+#### RF-12 — Conservar los datos del cliente en el comprobante
 
 El comprobante debe guardar el nombre, dirección y documento del cliente tal como están en el momento de la emisión (`vchNomComprobante`, `vchDirComprobante`, `vchTipoDocumento`, `vchNumDocumento`).
 
@@ -239,7 +243,7 @@ El comprobante debe guardar el nombre, dirección y documento del cliente tal co
 
 ### 4.4 Registro del medio de pago
 
-#### RF-12 — Registrar el medio de pago
+#### RF-13 — Registrar el medio de pago
 
 El sistema debe registrar el medio de pago de la venta. Como en el procedimiento de referencia, cada venta tiene **un solo medio de pago por el total** **[PENDIENTE P-21]**.
 
@@ -250,10 +254,11 @@ El sistema debe registrar el medio de pago de la venta. Como en el procedimiento
   - Se graba como en el procedimiento de referencia: `vchEstado = '2'`, `numLinea = 0`, `chrFlagPendienteAjuste = 'N'`, `vchOrigen = 'PGA'`; un banco vacío se graba como NULL.
   - El pago se registra en soles con tipo de cambio 1 (RN-21, P-22).
   - El medio de pago debe existir y estar activo en su catálogo.
-  - Si el medio es tarjeta, cheque o depósito, el banco y el número de operación son obligatorios **[PENDIENTE P-09]**.
-  - La tarjeta es un solo medio de pago. Si el medio es tarjeta, el tipo de tarjeta (crédito o débito, catálogo 114, procedimiento `pga_mediopago_tipo_tarjeta_listar`) es obligatorio y se graba en `vchTipoTarjeta` (RN-22).
+  - Códigos de `vchMedioPago` (P-09): `1` efectivo, `2` cheque, `3` tarjeta de débito, `4` tarjeta de crédito, `5` boleta de depósito.
+  - Si el medio es cheque, tarjeta (débito o crédito) o depósito, el banco y el número de operación son obligatorios.
+  - Débito y crédito son medios de pago distintos (`3` y `4`); `vchTipoTarjeta` se graba en NULL.
 
-#### RF-13 — Asignar el pago al comprobante
+#### RF-14 — Asignar el pago al comprobante
 
 El pago debe quedar asignado al comprobante por el total.
 
@@ -263,7 +268,7 @@ El pago debe quedar asignado al comprobante por el total.
   - El comprobante queda marcado como pagado con `vchFlagMedioPago = 'S'`, como en el procedimiento de referencia.
   - `SGP_COMPROBANTE_BS.numMontoPagado` es igual al monto asignado **[PENDIENTE P-22]**.
 
-#### RF-14 — Validar el pago
+#### RF-15 — Validar el pago
 
 - **Reglas:** RN-16.
 - **Criterios de aceptación:**
@@ -272,7 +277,7 @@ El pago debe quedar asignado al comprobante por el total.
 
 ### 4.5 Consultas
 
-#### RF-15 — Consultar una venta
+#### RF-16 — Consultar una venta
 
 Dado el número de transacción, el sistema debe devolver la cabecera, sus líneas, el comprobante asociado y el pago.
 
@@ -281,7 +286,7 @@ Dado el número de transacción, el sistema debe devolver la cabecera, sus líne
   - Si no existe o no está activa, responde *no encontrado* (404).
   - Si pertenece a un punto de venta distinto al del usuario, responde *acceso denegado* (403).
 
-#### RF-16 — Consultar un comprobante
+#### RF-17 — Consultar un comprobante
 
 Dado el código de comprobante, o su serie y número, el sistema debe devolver la cabecera, el detalle y el pago asignado.
 
@@ -292,13 +297,13 @@ Dado el código de comprobante, o su serie y número, el sistema debe devolver l
 
 ### 4.6 Requerimientos transversales
 
-#### RF-17 — Auditoría
+#### RF-18 — Auditoría
 
 Todo registro creado debe guardar el login del usuario en `vchCreador` (o `Creador` en tablas `PGA_`) y la fecha y hora en `dtmFechaCreacion` (o `FechaCreacion`). Toda modificación (p. ej. el correlativo de la impresora) debe guardar `vchModificador` y `dtmFechaModificacion`.
 
-#### RF-18 — Validación del usuario
+#### RF-19 — Validación del usuario
 
-Toda página y toda llamada AJAX (jQuery), salvo el inicio de sesión, requieren una sesión válida (RF-20). La sesión se mantiene con la cookie de autenticación de ASP.NET Core, que el navegador envía automáticamente en cada petición. Además, toda petición que modifica datos (formularios y llamadas AJAX por POST) debe enviar el token antifalsificación (*antiforgery*) de la página. El usuario de la sesión debe seguir existiendo en `SGP_USUARIO` (`vchLogin`), estar activo y estar dentro de su periodo de vigencia (`dtmFechaInicioAct` ≤ hoy ≤ `dtmFechaFinAct`).
+Toda página y toda llamada AJAX (jQuery), salvo el inicio de sesión, requieren una sesión válida (RF-21). La sesión se mantiene con la cookie de autenticación de ASP.NET Core, que el navegador envía automáticamente en cada petición. Además, toda petición que modifica datos (formularios y llamadas AJAX por POST) debe enviar el token antifalsificación (*antiforgery*) de la página. El usuario de la sesión debe seguir existiendo en `SGP_USUARIO` (`vchLogin`), estar activo y estar dentro de su periodo de vigencia (`dtmFechaInicioAct` ≤ hoy ≤ `dtmFechaFinAct`).
 
 - **Reglas:** RN-18, RN-19.
 - **Criterios de aceptación:**
@@ -308,9 +313,9 @@ Toda página y toda llamada AJAX (jQuery), salvo el inicio de sesión, requieren
   - El usuario y el punto de venta de la operación se toman de la sesión, nunca de los datos enviados en la petición. El punto de venta de la sesión es el de `SGP_USUARIO.vchCodPuntoVenta` al iniciar sesión.
   - Si el punto de venta asignado al usuario en `SGP_USUARIO` cambia, la sesión deja de ser válida y el usuario debe volver a iniciar sesión.
   - Si la petición se refiere a un punto de venta distinto al de la sesión, se rechaza como *acceso denegado* (403).
-  - El usuario de la sesión es el que se registra en la auditoría (RF-17).
+  - El usuario de la sesión es el que se registra en la auditoría (RF-18).
 
-#### RF-19 — Respuestas de error
+#### RF-20 — Respuestas de error
 
 Los errores de las llamadas AJAX se devuelven en formato ProblemDetails (RFC 7807), con mensajes en español, y la vista los muestra junto a los campos o en un aviso. En las páginas, los errores de validación se muestran en el mismo formulario. Códigos:
 
@@ -325,7 +330,7 @@ Los errores de las llamadas AJAX se devuelven en formato ProblemDetails (RFC 780
 
 ### 4.7 Acceso al sistema
 
-#### RF-20 — Iniciar sesión
+#### RF-21 — Iniciar sesión
 
 El operador debe identificarse con su usuario y contraseña antes de usar el sistema.
 
@@ -334,17 +339,17 @@ El operador debe identificarse con su usuario y contraseña antes de usar el sis
 - **Fuente:** `SGP_USUARIO` (`vchLogin`, `vchPassword`, `chrSituacionRegistro`, `dtmFechaInicioAct`, `dtmFechaFinAct`, `dtmFechaExpiraClave`, `vchCodPuntoVenta`).
 - **Reglas:** RN-01, RN-18, RN-19.
 - **Criterios de aceptación:**
-  - Con usuario activo, vigente y contraseña correcta, se inicia la sesión.
+  - Con usuario activo, vigente y contraseña correcta, se inicia la sesión. `vchPassword` está en texto plano (P-02): se compara de forma exacta (distingue mayúsculas) y en tiempo constante.
   - Si el usuario no existe, está inactivo, no está vigente o la contraseña es incorrecta, se rechaza con un mensaje genérico ("Usuario o contraseña incorrectos"), sin indicar cuál dato falló.
   - Si la contraseña está expirada (`dtmFechaExpiraClave` < hoy), se rechaza indicando que la contraseña expiró **[PENDIENTE P-17]**.
   - Si el usuario no tiene punto de venta asignado, se rechaza.
   - La contraseña nunca se devuelve, ni se guarda en la cookie, ni se registra en logs.
-  - La sesión expira tras un tiempo configurable **[PENDIENTE P-18]**; después se aplica RF-18 (redirección al inicio de sesión o 401).
+  - La sesión expira tras un tiempo configurable **[PENDIENTE P-18]**; después se aplica RF-19 (redirección al inicio de sesión o 401).
   - El operador puede cerrar sesión desde cualquier pantalla: la cookie se elimina y se vuelve al inicio de sesión.
 
 ### 4.8 Reportes
 
-#### RF-21 — Reporte de ventas registradas
+#### RF-22 — Reporte de ventas registradas
 
 El operador debe poder obtener el reporte de las ventas registradas en su punto de venta.
 
@@ -368,17 +373,17 @@ El operador debe poder obtener el reporte de las ventas registradas en su punto 
 |---|---|
 | **RN-01** | Solo se usan registros activos (`chrSituacionRegistro = 'A'`) de clientes, artículos, tarifas, puntos de venta, canales, impresoras, bancos y usuarios. |
 | **RN-02** | Los códigos de catálogo (`SGP_TABLA` / `SGP_DETALLE_TABLA`) solo son válidos si están activos (`chrSituacionRegistro = 'A'`). |
-| **RN-03** | La tasa de IGV es **0.18** y se aplica sobre el subtotal de cada línea. |
-| **RN-04** | Convención del procedimiento de referencia: el subtotal de la línea incluye el IGV (`numSubTotal = ValorVenta + numIGV`). En las cabeceras, `numSubTotal = Σ (numSubTotal − numIGV)` de las líneas (base imponible), `numMontoIGV = Σ numIGV` y `numMontoTotal = numSubTotal + numMontoIGV` (detalle en RF-05). |
+| **RN-03** | La tasa de IGV es **0.18**. La tarifa incluye el IGV, que se desglosa en cada línea (`ValorVenta = numSubTotal / 1.18`). |
+| **RN-04** | Convención del procedimiento de referencia: el subtotal de la línea incluye el IGV (`numSubTotal = Cantidad × Tarifa = ValorVenta + numIGV`). En las cabeceras, `numSubTotal = Σ (numSubTotal − numIGV)` de las líneas (base imponible), `numMontoIGV = Σ numIGV` y `numMontoTotal = numSubTotal + numMontoIGV` (detalle en RF-06). |
 | **RN-05** | Todos los importes se manejan con 4 decimales. Los totales de cabecera y comprobante son la suma exacta de sus líneas. |
 | **RN-06** | Una tarifa es vigente si `dtmFecInicio` ≤ fecha de venta ≤ `dtmFecCaducidad`. |
 | **RN-07** | Si hay varias tarifas vigentes para el mismo artículo y canal (por escala `numCantidad`), se aplica la de mayor `numCantidad` que no supere la cantidad vendida **[PENDIENTE P-06]**. |
 | **RN-08** | La cantidad de cada línea debe ser mayor que 0. |
-| **RN-09** | El stock se lleva por **artículo + punto de venta + canal** y es la suma de `PGA_TRANSACCION_KARDEX.Cantidad` para esa combinación. No existe tabla de saldos. |
+| **RN-09** | El stock se lleva por **artículo + punto de venta** y es la suma de `PGA_TRANSACCION_KARDEX.Cantidad` para esa combinación, **sin filtrar por canal**: el canal es fijo (`01`) y los movimientos grabados por el procedimiento de referencia tienen `CodTarifaCanal` en NULL. Los códigos se comparan sin espacios. No existe tabla de saldos. |
 | **RN-10** | No se permite vender más que el stock disponible **[PENDIENTE P-07]**. |
-| **RN-11** | Cada línea vendida genera un movimiento en el kardex con `TipoTransaccion = 'VENTA'` y la cantidad en negativo, enlazado a la transacción (`CodTransaccion`) (RF-08). |
+| **RN-11** | Cada línea vendida genera un movimiento en el kardex con `TipoTransaccion = 'VENTA'` y la cantidad en negativo, enlazado a la transacción (`CodTransaccion`) (RF-09). |
 | **RN-12** | El importe total del comprobante es igual al de la venta que lo origina. |
-| **RN-13** | La serie es el primer carácter del tipo de comprobante seguido del código del punto de venta. El número es el próximo correlativo guardado en `SGP_IMPRESORA.vchCorrelativo` para esa serie, con 7 dígitos; la impresora queda con el correlativo + 1. El incremento es atómico (RF-10). |
+| **RN-13** | La serie es el primer carácter del tipo de comprobante seguido del código del punto de venta. El número es el próximo correlativo guardado en `SGP_IMPRESORA.vchCorrelativo` para esa serie, con 7 dígitos; la impresora queda con el correlativo + 1. El incremento es atómico (RF-11). |
 | **RN-14** | Para emitir factura, el cliente debe tener RUC; la boleta admite cualquier documento **[PENDIENTE P-08]**. |
 | **RN-15** | Venta, kardex, comprobante y pago se graban en una **única transacción de base de datos**: o se graba todo o no se graba nada. Los procedimientos de referencia no abren una transacción; el sistema nuevo sí debe hacerlo. |
 | **RN-16** | Cada venta se paga al contado con un único medio de pago por el total del comprobante **[PENDIENTE P-05, P-21]**. |
@@ -387,14 +392,14 @@ El operador debe poder obtener el reporte de las ventas registradas en su punto 
 | **RN-19** | El operador solo vende y consulta en el punto de venta que tiene asignado en `SGP_USUARIO.vchCodPuntoVenta`. El sistema lo obtiene de esa tabla al iniciar sesión; nunca lo recibe en la petición. |
 | **RN-20** | No pueden existir dos clientes activos con el mismo tipo y número de documento. La BD no tiene restricción única, así que la verifica el sistema. |
 | **RN-21** | Todas las ventas, comprobantes y pagos son en soles (PEN) con tipo de cambio 1. |
-| **RN-22** | Tarjeta de crédito y tarjeta de débito no son medios de pago distintos: ambas se registran con el medio "tarjeta" y se distinguen por el tipo de tarjeta (`vchTipoTarjeta`), que es obligatorio para ese medio. |
+| **RN-22** | *Eliminada en la versión 0.5*: tarjeta de débito (`3`) y de crédito (`4`) son medios de pago distintos (P-09). |
 
 ## 6. Requerimientos no funcionales
 
 | Código | Requerimiento |
 |---|---|
 | **RNF-01** | La base de datos `BDVenta` se usa tal como existe: no se crean, renombran ni alteran tablas o columnas. |
-| **RNF-02** | El sistema es una aplicación web ASP.NET Core MVC sobre .NET 10, escrita en C#, con vistas Razor y jQuery. Las operaciones que las vistas invocan por AJAX devuelven JSON y, ante error, ProblemDetails (RF-19). |
+| **RNF-02** | El sistema es una aplicación web ASP.NET Core MVC sobre .NET 10, escrita en C#, con vistas Razor y jQuery. Las operaciones que las vistas invocan por AJAX devuelven JSON y, ante error, ProblemDetails (RF-20). |
 | **RNF-03** | Mensajes de error y documentación en español. |
 | **RNF-04** | La cadena de conexión y cualquier credencial se configuran fuera del repositorio (User Secrets o variables de entorno). |
 | **RNF-05** | Cada servicio tiene pruebas unitarias; el flujo completo de venta tiene pruebas de integración, incluida la reversión ante errores y la no duplicación de correlativos. |
@@ -407,27 +412,27 @@ Mientras no se confirmen, la implementación usa el supuesto indicado.
 | Código | Tema | Supuesto provisional |
 |---|---|---|
 | **P-01** | Datos de prueba: `BDVentas.sql` muestra el esquema de la BD. | Se realizó una carga masiva de los maestros y de la tabla de clientes en `Docs/database/`. |
-| **P-02** | Formato de `SGP_USUARIO.vchPassword` (`varchar(16)`): ¿texto plano, hash o cifrado? Con 16 caracteres no cabe un hash moderno. | Por confirmar antes de implementar RF-20. No se modifica la columna (RNF-01). |
+| **P-02** | Formato de `SGP_USUARIO.vchPassword` (`varchar(16)`): ¿texto plano, hash o cifrado? Con 16 caracteres no cabe un hash moderno. | **Resuelto**: texto plano. Se compara en tiempo constante y nunca se registra en logs. No se modifica la columna (RNF-01). Riesgo de seguridad aceptado para la versión 1. |
 | **P-03** | Descuentos y recargos por línea (`chrTipDscto0X`, `tipoDscto0X`). | Fuera de la versión 1: descuento y recargo = 0. |
 | **P-04** | Relación venta ↔ comprobante (el modelo permite N:M). | 1 venta = 1 comprobante. |
 | **P-05** | Forma de pago. | Solo contado: el pago cubre el total al registrar la venta. Crédito queda fuera de la versión 1. |
 | **P-06** | Selección de tarifa por escala de `numCantidad`. | RN-07. |
-| **P-07** | Stock negativo. | No se permite stock negativo (RN-10); el procedimiento de referencia no lo valida. El signo y los valores del kardex quedan **resueltos** por el procedimiento de referencia (RF-08). |
+| **P-07** | Stock negativo. | No se permite stock negativo (RN-10); el procedimiento de referencia no lo valida. El signo y los valores del kardex quedan **resueltos** por el procedimiento de referencia (RF-09). |
 | **P-08** | Factura exige RUC. | RN-14. |
-| **P-09** | Datos obligatorios por medio de pago. | Tarjeta, cheque y depósito exigen banco y número de operación. La tarjeta exige además el tipo (crédito o débito) (RN-22), del catálogo 114. Por confirmar los códigos de medio de pago (`vchMedioPago`, 2 caracteres). |
-| **P-10** | Valores de estado. | Comprobante y medio de pago: `vchEstado = '2'` (cancelado), **resuelto** por el procedimiento de referencia. Por confirmar: `intEstado` de la cabecera de la venta (el procedimiento lo recibe como parámetro). |
+| **P-09** | Datos obligatorios por medio de pago. | Tarjeta, cheque y depósito exigen banco y número de operación. **Resuelto**: `vchMedioPago` = `1` efectivo, `2` cheque, `3` tarjeta de débito, `4` tarjeta de crédito, `5` boleta de depósito. Débito y crédito son medios distintos; `vchTipoTarjeta` queda en NULL (se elimina RN-22). |
+| **P-10** | Valores de estado. | Comprobante y medio de pago: `vchEstado = '2'` (cancelado), **resuelto** por el procedimiento de referencia. **Resuelto**: `intEstado` de la cabecera de la venta = 1. |
 | **P-11** | Redondeo y presentación de importes. | Los importes se calculan y graban con 4 decimales (RN-05), sin redondeo del monto a cobrar (`numMontoRedondeo` = 0). El comprobante y el reporte muestran los importes con 2 decimales solo como presentación. Por confirmar el método (se asume redondeo comercial: 0.005 sube) y si se redondea cada línea o solo los totales. |
-| **P-12** | `SGP_CABECERA_TRANSACCION_BS.numCodComprobante` es `numeric(9,4)`. | **Resuelto**: se rellena con el código del comprobante, como en el procedimiento de referencia (RF-09). Riesgo: `numeric(9,4)` admite hasta 99999.9999, así que un código de comprobante mayor provocaría un error al grabar. Hay que verificar el código más alto actual en `SGP_COMPROBANTE_BS`. |
-| **P-13** | `SGP_CABECERA_TRANSACCION_BS.vchCodAlmacen` es obligatorio (NOT NULL), aunque el stock no depende del almacén. | Se usa el almacén asociado al punto de venta en `SGP_PUNTO_VENTA_ALMACEN`. Si tiene varios, por confirmar cuál. |
-| **P-14** | Formato de la serie y del número de comprobante. | Número: 7 dígitos con ceros, **resuelto** por el procedimiento de referencia. Serie: primer carácter del tipo de comprobante + código del punto de venta; por confirmar los valores del catálogo de tipo de comprobante, que determinan la letra de la serie. |
-| **P-15** | ¿El precio de `SGP_TARIFA.numPrecioUnidad` incluye IGV? ¿Qué se graba en `numMontoBruto` de la línea? | No incluye IGV; el IGV se suma y `numMontoBruto` = cantidad × tarifa (RF-05). Confirmar con ventas ya grabadas en `SGP_DETALLE_TRANSACCION_BS`. |
+| **P-12** | `SGP_CABECERA_TRANSACCION_BS.numCodComprobante` es `numeric(9,4)`. | **Resuelto**: se rellena con el código del comprobante, como en el procedimiento de referencia (RF-10). Riesgo: `numeric(9,4)` admite hasta 99999.9999, así que un código de comprobante mayor provocaría un error al grabar. Hay que verificar el código más alto actual en `SGP_COMPROBANTE_BS`. |
+| **P-13** | `SGP_CABECERA_TRANSACCION_BS.vchCodAlmacen` es obligatorio (NOT NULL), aunque el stock no depende del almacén. | **Resuelto**: el punto de venta es el de `SGP_USUARIO`; se usa su primer almacén activo (menor `vchCodAlmacen`) en `SGP_PUNTO_VENTA_ALMACEN`. Sin almacén activo, la venta se rechaza. |
+| **P-14** | Formato de la serie y del número de comprobante. | Número: 7 dígitos con ceros, **resuelto** por el procedimiento de referencia. Serie: **resuelto**, `F` (factura) o `B` (boleta) + código del punto de venta. |
+| **P-15** | ¿El precio de `SGP_TARIFA.numPrecioUnidad` incluye IGV? ¿Qué se graba en `numMontoBruto` de la línea? | **Resuelto**: la tarifa **incluye** IGV; el IGV se desglosa (`ValorVenta = numSubTotal / 1.18`) y `numMontoBruto` = cantidad × tarifa (RF-06). Se aparta del procedimiento de referencia, que suma el IGV sobre la tarifa. |
 | **P-16** | Moneda y tipo de cambio. | **Resuelto** en RN-21: siempre soles con tipo de cambio 1. |
 | **P-17** | Contraseña expirada (`dtmFechaExpiraClave`). | Se rechaza el inicio de sesión; el cambio de contraseña queda fuera de la versión 1. Si la columna es NULL, no expira. |
 | **P-18** | Duración de la sesión y bloqueo por intentos fallidos. | Cookie de sesión válida por 8 horas (un turno), sin renovación automática. Sin bloqueo por intentos en la versión 1 (no hay columna para contarlos). |
 | **P-19** | Formato de exportación y rango máximo del reporte. | Consulta en pantalla; exportación a Excel/PDF por confirmar. Rango máximo de 31 días. |
 | **P-20** | Códigos de `vchTipDocumento` y `vchTipPersona`, otros documentos (carné de extranjería, pasaporte) y valores de `vchTipoCliente`, `vchZonaVenta` y `vchEstado` al crear un cliente. | DNI (8 dígitos) y RUC (11 dígitos) según el catálogo de tipos de documento. Las demás columnas quedan en NULL hasta confirmarlas. |
 | **P-21** | Pago mixto (varios medios de pago en una venta). | El procedimiento de referencia registra un solo medio de pago por el total, y así se define la versión 1 (RN-16). Por confirmar si el negocio necesita pago mixto (p. ej. parte en efectivo y parte con tarjeta). |
-| **P-22** | Valores heredados discutibles de los procedimientos de referencia. | Tipo de cambio: los procedimientos usan 3.25 por defecto; se graba 1 porque todo es en soles (RN-21). `numMontoPagado` del comprobante: los procedimientos lo dejan en 0; se graba el monto pagado (RF-13). Por confirmar que estos cambios no afectan otros procesos que lean esos datos. |
+| **P-22** | Valores heredados discutibles de los procedimientos de referencia. | Tipo de cambio: los procedimientos usan 3.25 por defecto; se graba 1 porque todo es en soles (RN-21). `numMontoPagado` del comprobante: los procedimientos lo dejan en 0; se graba el monto pagado (RF-14). Por confirmar que estos cambios no afectan otros procesos que lean esos datos. |
 
 ## 8. Fuera de alcance (versión 1)
 
@@ -435,7 +440,7 @@ Mientras no se confirmen, la implementación usa el supuesto indicado.
 - Ventas al crédito y cobranza posterior.
 - Descuentos, recargos y redondeo del monto a cobrar (`numMontoRedondeo`). La presentación con 2 decimales sí está incluida (P-11).
 - Ventas en moneda extranjera (RN-21).
-- Modificación y baja de clientes (el alta sí está incluida, RF-22).
+- Modificación y baja de clientes (el alta sí está incluida, RF-03).
 - Mantenimiento (alta, baja, modificación) de artículos, tarifas e impresoras.
 - Pagos digitales (`PGA_ORDEN_PAGO_DIGITAL`).
 - Venta de publicaciones o avisos (campos de aviso del detalle del comprobante).
