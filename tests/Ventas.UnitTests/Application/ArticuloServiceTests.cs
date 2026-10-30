@@ -22,7 +22,8 @@ public class ArticuloServiceTests
         _usuario.SetupGet(u => u.CodigoPuntoVenta).Returns("001");
         _puntosVenta.Setup(p => p.ObtenerAsync("001", It.IsAny<CancellationToken>()))
             .ReturnsAsync(new PuntoVenta(" 001", "SEDE CENTRAL", "Z01", activo: true));
-        _articulos.Setup(a => a.ExisteCanalActivoAsync("01", It.IsAny<CancellationToken>())).ReturnsAsync(true);
+        _articulos.Setup(a => a.ObtenerCanalAsync("01", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new TarifaCanal(" 01", "Avisos Lima Contado", activo: true));
         _stock.Setup(s => s.ObtenerStockAsync(It.IsAny<string>(), It.IsAny<IReadOnlyCollection<string>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase) { ["ART001"] = 12 });
 
@@ -76,7 +77,8 @@ public class ArticuloServiceTests
     [Fact]
     public async Task ListarDisponibles_CanalInactivo_NoEncontrado()
     {
-        _articulos.Setup(a => a.ExisteCanalActivoAsync("01", It.IsAny<CancellationToken>())).ReturnsAsync(false);
+        _articulos.Setup(a => a.ObtenerCanalAsync("01", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new TarifaCanal(" 01", "Avisos Lima Contado", activo: false));
 
         var accion = () => _servicio.ListarDisponiblesAsync(null, CancellationToken.None);
 

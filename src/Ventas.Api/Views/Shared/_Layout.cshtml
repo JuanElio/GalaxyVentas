@@ -16,6 +16,7 @@
         {
             <nav>
                 <a asp-controller="Home" asp-action="Index">Inicio</a>
+                <a asp-controller="Ventas" asp-action="Registrar">Registrar venta</a>
             </nav>
             <div class="sesion">
                 <span>@User.FindFirst(ClaimsSesion.Nombre)?.Value · Punto de venta @User.FindFirst(ClaimsSesion.PuntoVenta)?.Value</span>

@@ -149,11 +149,12 @@ public class Comprobante
     private void RecalcularTotales()
     {
         // Misma convención que la cabecera de la venta (RF-06): ambos totales coinciden (RN-12)
-        MontoBruto = _detalles.Sum(d => d.SubTotal);
-        SubTotal = _detalles.Sum(d => d.SubTotal - d.Igv);
-        MontoIgv = _detalles.Sum(d => d.Igv);
+        var totales = Importes.Totalizar(_detalles.Select(d => (d.SubTotal, d.Igv)));
+        MontoBruto = totales.MontoBruto;
+        SubTotal = totales.SubTotal;
+        MontoIgv = totales.MontoIgv;
+        MontoTotal = totales.MontoTotal;
         MontoDescuento = 0;
         MontoRecargo = 0;
-        MontoTotal = SubTotal + MontoIgv;
     }
 }

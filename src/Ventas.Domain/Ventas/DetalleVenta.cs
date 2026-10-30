@@ -26,9 +26,10 @@ public class DetalleVenta
         Tarifa = tarifa;
 
         // La tarifa incluye el IGV (P-15): el subtotal de la línea es el importe con IGV (RN-04)
-        MontoBruto = Importes.Redondear(cantidad * tarifa);
-        SubTotal = MontoBruto;
-        (_, Igv) = Importes.DesglosarIgv(SubTotal);
+        var importes = Importes.CalcularLinea(cantidad, tarifa);
+        MontoBruto = importes.MontoBruto;
+        SubTotal = importes.SubTotal;
+        Igv = importes.Igv;
     }
 
     public long CodigoTransaccion { get; private set; }

@@ -114,13 +114,14 @@ public class Venta
 
     private void RecalcularTotales()
     {
-        // Convención del procedimiento de referencia (RF-06); descuento y recargo fuera de alcance (P-03)
-        MontoBruto = _detalles.Sum(d => d.SubTotal);
-        SubTotal = _detalles.Sum(d => d.ValorVenta);
-        MontoIgv = _detalles.Sum(d => d.Igv);
+        var totales = Importes.Totalizar(_detalles.Select(d => (d.SubTotal, d.Igv)));
+        MontoBruto = totales.MontoBruto;
+        SubTotal = totales.SubTotal;
+        MontoIgv = totales.MontoIgv;
+        MontoTotal = totales.MontoTotal;
+        // Descuento y recargo fuera de alcance (P-03)
         MontoDescuento = 0;
         MontoRecargo = 0;
-        MontoTotal = SubTotal + MontoIgv;
     }
 
     private static string Requerido(string? valor, string campo) =>

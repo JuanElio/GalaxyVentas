@@ -26,12 +26,19 @@ public interface IArticuloRepository
     Task<IReadOnlyList<ArticuloConTarifas>> ListarConTarifasVigentesAsync(
         string codigoCanal, string? texto, DateTime fecha, int maximo, CancellationToken ct);
 
-    Task<bool> ExisteCanalActivoAsync(string codigoCanal, CancellationToken ct);
+    /// <summary>Los artículos pedidos que están activos y tienen tarifa vigente en el canal.</summary>
+    Task<IReadOnlyList<ArticuloConTarifas>> ObtenerConTarifasVigentesAsync(
+        string codigoCanal, IReadOnlyCollection<string> codigosArticulo, DateTime fecha, CancellationToken ct);
+
+    Task<TarifaCanal?> ObtenerCanalAsync(string codigoCanal, CancellationToken ct);
 }
 
 public interface IPuntoVentaRepository
 {
     Task<PuntoVenta?> ObtenerAsync(string codigo, CancellationToken ct);
+
+    /// <summary>Primer almacén activo (menor código) del punto de venta, o null si no tiene (P-13).</summary>
+    Task<string?> ObtenerAlmacenPrincipalAsync(string codigoPuntoVenta, CancellationToken ct);
 }
 
 public interface ICatalogoRepository

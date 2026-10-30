@@ -13,7 +13,7 @@ public class CuentaTests(AplicacionPrueba app) : IClassFixture<AplicacionPrueba>
         var respuesta = await AplicacionPrueba.IniciarSesionAsync(cliente, "jperez");
 
         Assert.Equal(HttpStatusCode.Redirect, respuesta.StatusCode);
-        Assert.Equal("/", respuesta.Headers.Location?.OriginalString);
+        Assert.Equal("/Ventas/Registrar", respuesta.Headers.Location?.OriginalString);
         var cookie = Assert.Single(respuesta.Headers.GetValues("Set-Cookie"), c => c.StartsWith("GalaxyVentas.Sesion="));
         Assert.Contains("secure", cookie, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("samesite=strict", cookie, StringComparison.OrdinalIgnoreCase);
@@ -41,7 +41,7 @@ public class CuentaTests(AplicacionPrueba app) : IClassFixture<AplicacionPrueba>
         }));
 
         // Una URL externa se ignora para evitar redirecciones abiertas
-        Assert.Equal("/", respuesta.Headers.Location?.OriginalString);
+        Assert.Equal("/Ventas/Registrar", respuesta.Headers.Location?.OriginalString);
     }
 
     [Theory]

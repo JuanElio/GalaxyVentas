@@ -73,6 +73,7 @@ public class CuentaController(AutenticacionService autenticacion) : Controller
         return View(modelo);
     }
 
+    // Tras iniciar sesión se va a la pantalla de registrar venta (RF-21)
     private IActionResult RedirigirAlInicio(string? returnUrl) =>
-        Url.IsLocalUrl(returnUrl) ? LocalRedirect(returnUrl) : RedirectToAction(nameof(HomeController.Index), "Home");
+        Url.IsLocalUrl(returnUrl) ? LocalRedirect(returnUrl) : RedirectToAction(nameof(VentasController.Registrar), "Ventas");
 }

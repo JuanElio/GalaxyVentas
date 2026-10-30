@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Ventas.Application.Maestros;
 using Ventas.Application.Seguridad;
+using Ventas.Application.Ventas;
 
 namespace Ventas.Application;
 
@@ -17,6 +18,7 @@ public static class RegistroServicios
         services.AddScoped<ClienteService>();
         services.AddScoped<ArticuloService>();
         services.AddScoped<CatalogoService>();
+        services.AddScoped<VentaService>();
 
         return services;
     }

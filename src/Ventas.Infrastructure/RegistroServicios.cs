@@ -5,6 +5,8 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Ventas.Application.Comun;
 using Ventas.Application.Maestros;
 using Ventas.Application.Seguridad;
+using Ventas.Application.Ventas;
+using Ventas.Infrastructure.Ventas;
 using Ventas.Infrastructure.Inventario;
 using Ventas.Infrastructure.Maestros;
 using Ventas.Infrastructure.Persistence;
@@ -33,6 +35,7 @@ public static class RegistroServicios
         services.AddScoped<IPuntoVentaRepository, PuntoVentaRepository>();
         services.AddScoped<ICatalogoRepository, CatalogoRepository>();
         services.AddScoped<IStockService, StockService>();
+        services.AddScoped<ICorrelativoService, CorrelativoService>();
 
         return services;
     }

@@ -21,7 +21,7 @@ public sealed class ArticuloService(
         var puntoVenta = await puntosVenta.ObtenerAsync(codigoPuntoVenta, ct);
         if (puntoVenta is not { Activo: true })
             throw new NoEncontradoException($"El punto de venta {codigoPuntoVenta} no existe o está inactivo.");
-        if (!await articulos.ExisteCanalActivoAsync(ParametrosVenta.Canal, ct))
+        if (await articulos.ObtenerCanalAsync(ParametrosVenta.Canal, ct) is not { Activo: true })
             throw new NoEncontradoException($"El canal {ParametrosVenta.Canal} no existe o está inactivo.");
 
         var fecha = reloj.GetLocalNow().DateTime;

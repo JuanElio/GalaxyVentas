@@ -22,4 +22,31 @@ public static class Importes
         var valorVenta = Redondear(importeConIgv / (1 + TasaIgv));
         return (valorVenta, importeConIgv - valorVenta);
     }
+
+    /// <summary>
+    /// Importes de una línea con tarifa que incluye IGV (RF-06): bruto y subtotal = cantidad × tarifa;
+    /// el IGV se desglosa del subtotal.
+    /// </summary>
+    public static ImportesLinea CalcularLinea(decimal cantidad, decimal tarifa)
+    {
+        var subTotal = Redondear(cantidad * tarifa);
+        var (valorVenta, igv) = DesglosarIgv(subTotal);
+        return new ImportesLinea(subTotal, subTotal, valorVenta, igv);
+    }
+
+    /// <summary>
+    /// Totales de cabecera con la convención del procedimiento de referencia (RF-06): bruto = Σ subtotal;
+    /// subtotal = Σ (subtotal − IGV); IGV = Σ IGV; total = subtotal + IGV. Sin descuento ni recargo (P-03).
+    /// </summary>
+    public static TotalesVenta Totalizar(IEnumerable<(decimal SubTotal, decimal Igv)> lineas)
+    {
+        var lista = lineas.ToList();
+        var subTotal = lista.Sum(l => l.SubTotal - l.Igv);
+        var igv = lista.Sum(l => l.Igv);
+        return new TotalesVenta(lista.Sum(l => l.SubTotal), subTotal, igv, subTotal + igv);
+    }
 }
+
+public readonly record struct ImportesLinea(decimal MontoBruto, decimal SubTotal, decimal ValorVenta, decimal Igv);
+
+public readonly record struct TotalesVenta(decimal MontoBruto, decimal SubTotal, decimal MontoIgv, decimal MontoTotal);

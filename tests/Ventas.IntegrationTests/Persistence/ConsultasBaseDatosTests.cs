@@ -39,7 +39,7 @@ public class ConsultasBaseDatosTests(WebApplicationFactory<Program> factory) : I
             Assert.Equal(a.Articulo.Codigo.Trim(), a.Articulo.Codigo);
             Assert.NotEmpty(a.Tarifas);
         });
-        Assert.True(await repositorio.ExisteCanalActivoAsync("01", CancellationToken.None));
+        Assert.True((await repositorio.ObtenerCanalAsync("01", CancellationToken.None))?.Activo);
     });
 
     [Fact]

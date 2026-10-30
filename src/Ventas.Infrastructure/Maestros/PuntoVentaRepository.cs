@@ -13,4 +13,14 @@ public sealed class PuntoVentaRepository(VentasDbContext db) : IPuntoVentaReposi
         var buscado = codigo.Trim();
         return await db.Set<PuntoVenta>().AsNoTracking().FirstOrDefaultAsync(p => p.Codigo.Trim() == buscado, ct);
     }
+
+    public async Task<string?> ObtenerAlmacenPrincipalAsync(string codigoPuntoVenta, CancellationToken ct)
+    {
+        var buscado = codigoPuntoVenta.Trim();
+        return await db.Set<PuntoVentaAlmacen>().AsNoTracking()
+            .Where(a => a.CodigoPuntoVenta.Trim() == buscado && EF.Property<bool?>(a, Conversiones.CampoActivo) == true)
+            .OrderBy(a => a.CodigoAlmacen)
+            .Select(a => a.CodigoAlmacen)
+            .FirstOrDefaultAsync(ct);
+    }
 }

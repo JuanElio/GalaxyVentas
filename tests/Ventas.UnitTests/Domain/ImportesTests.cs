@@ -19,6 +19,26 @@ public class ImportesTests
         (valorVenta + igv).Should().Be(importe);
     }
 
+    [Fact]
+    public void CalcularLinea_SubtotalEsCantidadPorTarifaYElIgvSeDesglosa()
+    {
+        var linea = Importes.CalcularLinea(2, 59.0000m);
+
+        linea.Should().Be(new ImportesLinea(MontoBruto: 118.0000m, SubTotal: 118.0000m, ValorVenta: 100.0000m, Igv: 18.0000m));
+    }
+
+    [Fact]
+    public void Totalizar_SumaConLaConvencionDeReferencia()
+    {
+        var totales = Importes.Totalizar([(118.0000m, 18.0000m), (10.0000m, 1.5254m)]);
+
+        totales.Should().Be(new TotalesVenta(MontoBruto: 128.0000m, SubTotal: 108.4746m, MontoIgv: 19.5254m, MontoTotal: 128.0000m));
+    }
+
+    [Fact]
+    public void Totalizar_SinLineas_TodoEnCero() =>
+        Importes.Totalizar([]).Should().Be(new TotalesVenta(0, 0, 0, 0));
+
     [Theory]
     [InlineData(1.00005, 1.0001)]
     [InlineData(1.00004, 1.0000)]

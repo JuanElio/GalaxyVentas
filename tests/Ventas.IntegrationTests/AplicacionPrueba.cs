@@ -4,16 +4,18 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
+using Moq;
 using Ventas.Application.Comun;
 using Ventas.Application.Maestros;
 using Ventas.Application.Seguridad;
+using Ventas.Application.Ventas;
 using Ventas.Domain.Maestros;
 using Ventas.Domain.Seguridad;
 
 namespace Ventas.IntegrationTests;
 
 /// <summary>
-/// Levanta la aplicación con usuarios en memoria en lugar de SGP_USUARIO.
+/// Levanta la aplicación sin base de datos: usuarios y clientes en memoria, y maestros simulados con Moq.
 /// </summary>
 public sealed partial class AplicacionPrueba : WebApplicationFactory<Program>
 {
@@ -23,6 +25,38 @@ public sealed partial class AplicacionPrueba : WebApplicationFactory<Program>
 
     public ClientesEnMemoria Clientes { get; } = new();
 
+    public Mock<IPuntoVentaRepository> PuntosVenta { get; } = new();
+
+    public Mock<IArticuloRepository> Articulos { get; } = new();
+
+    public Mock<IStockService> Stock { get; } = new();
+
+    public Mock<ICorrelativoService> Correlativos { get; } = new();
+
+    public AplicacionPrueba()
+    {
+        // Punto de venta 001 con un artículo (ART001, 20.00 con IGV, 50 en stock) y la serie B001
+        PuntosVenta.Setup(p => p.ObtenerAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new PuntoVenta(" 001", "SEDE CENTRAL", "Z01", activo: true));
+        PuntosVenta.Setup(p => p.ObtenerAlmacenPrincipalAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync("ALM01");
+        Articulos.Setup(a => a.ObtenerCanalAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new TarifaCanal(" 01", "Avisos Lima Contado", activo: true));
+        Articulos.Setup(a => a.ObtenerConTarifasVigentesAsync(It.IsAny<string>(), It.IsAny<IReadOnlyCollection<string>>(),
+                It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync([ArticuloDePrueba]);
+        Articulos.Setup(a => a.ListarConTarifasVigentesAsync(It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<DateTime>(),
+                It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync([ArticuloDePrueba]);
+        Stock.Setup(s => s.ObtenerStockAsync(It.IsAny<string>(), It.IsAny<IReadOnlyCollection<string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase) { ["ART001"] = 50 });
+        Correlativos.Setup(c => c.ConsultarSiguienteAsync("B001", It.IsAny<CancellationToken>())).ReturnsAsync(7);
+    }
+
+    private static readonly ArticuloConTarifas ArticuloDePrueba = new(
+        new Articulo("ART001", "CUADERNO A4", "UND", activo: true),
+        [new Tarifa("ART001", " 01", 999999, 20.0000m, new DateTime(2020, 1, 1), new DateTime(2050, 1, 1), activo: true)]);
+
     protected override void ConfigureWebHost(IWebHostBuilder builder) =>
         builder.ConfigureTestServices(services =>
         {
@@ -30,6 +64,10 @@ public sealed partial class AplicacionPrueba : WebApplicationFactory<Program>
             services.AddSingleton<IVerificadorClave>(Usuarios);
             services.AddSingleton<IClienteRepository>(Clientes);
             services.AddSingleton<IUnitOfWork>(Clientes);
+            services.AddSingleton(PuntosVenta.Object);
+            services.AddSingleton(Articulos.Object);
+            services.AddSingleton(Stock.Object);
+            services.AddSingleton(Correlativos.Object);
         });
 
     /// <summary>Cliente HTTP con sesión iniciada, cabecera AJAX y token antifalsificación.</summary>

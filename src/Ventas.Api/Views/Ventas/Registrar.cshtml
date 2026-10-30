@@ -1,0 +1,196 @@
+@model Ventas.Application.Ventas.ContextoVentaDto
+@{
+    ViewData["Title"] = "Registrar venta";
+}
+
+<div class="titulo-pagina">
+    <h1>Registrar venta</h1>
+    <p class="sub">Venta, comprobante y pago en una sola operación</p>
+</div>
+
+<div class="contexto">
+    <span>Punto de venta: <b>@Model.CodigoPuntoVenta · @Model.PuntoVenta</b></span>
+    <span>Canal: <b>@Model.Canal</b></span>
+    <span>Moneda: <b>@Model.Moneda</b></span>
+    <span>Tipo de orden: <b>@Model.TipoOrden</b></span>
+    <span>Almacén: <b>@(Model.Almacen ?? "Sin almacén asignado")</b></span>
+    <span>Usuario: <b>@Model.Usuario</b></span>
+</div>
+
+<div class="grid-venta">
+    <div class="col-principal">
+
+        <section class="tarjeta" aria-labelledby="h-cliente">
+            <h2 id="h-cliente">1. Cliente</h2>
+            <form id="form-cliente" class="fila-form" autocomplete="off">
+                <div class="campo">
+                    <label for="num-doc">Número de documento (DNI / RUC)</label>
+                    <input id="num-doc" inputmode="numeric" maxlength="16" placeholder="Ej.: 45678912 o 20512345678">
+                </div>
+                <div class="campo"><button class="btn" type="submit">Buscar</button></div>
+            </form>
+            <div id="cliente-res"></div>
+
+            <form id="form-nuevo" class="sub-form" autocomplete="off" novalidate hidden>
+                <h3>Registrar cliente nuevo</h3>
+                <div class="fila-form">
+                    <div class="campo">
+                        <label for="nc-tipo">Tipo de documento</label>
+                        <select id="nc-tipo" data-campo="TipoDocumento"></select>
+                    </div>
+                    <div class="campo">
+                        <label for="nc-num">Número de documento</label>
+                        <input id="nc-num" inputmode="numeric" maxlength="11" data-campo="NumeroDocumento">
+                    </div>
+                    <div class="campo">
+                        <label for="nc-persona">Tipo de persona</label>
+                        <input id="nc-persona" disabled>
+                    </div>
+                </div>
+                <div id="nc-natural" class="fila-form">
+                    <div class="campo">
+                        <label for="nc-nombres">Nombres</label>
+                        <input id="nc-nombres" maxlength="128" data-campo="Nombres">
+                    </div>
+                    <div class="campo">
+                        <label for="nc-apellidos">Apellidos</label>
+                        <input id="nc-apellidos" maxlength="128" data-campo="Apellidos">
+                    </div>
+                </div>
+                <div id="nc-juridica" class="campo" hidden>
+                    <label for="nc-razon">Razón social</label>
+                    <input id="nc-razon" maxlength="128" data-campo="RazonSocial">
+                </div>
+                <div class="campo">
+                    <label for="nc-dir">Dirección de facturación <span id="nc-dir-req"></span></label>
+                    <input id="nc-dir" maxlength="128" data-campo="DireccionFacturacion">
+                </div>
+                <div class="fila-form">
+                    <div class="campo">
+                        <label for="nc-tel">Teléfono (opcional)</label>
+                        <input id="nc-tel" inputmode="tel" maxlength="15" data-campo="Telefono">
+                    </div>
+                    <div class="campo">
+                        <label for="nc-email">Correo (opcional)</label>
+                        <input id="nc-email" type="email" maxlength="128" data-campo="Email">
+                    </div>
+                </div>
+                <div class="fila-form">
+                    <button class="btn" type="submit">Registrar cliente</button>
+                    <button id="nc-cancelar" class="btn btn-sec" type="button">Cancelar</button>
+                </div>
+                <div id="nc-errores" class="aviso aviso-err" role="alert"></div>
+            </form>
+        </section>
+
+        <section class="tarjeta" aria-labelledby="h-art">
+            <h2 id="h-art">2. Artículos</h2>
+            <div class="campo">
+                <label for="buscar-art">Buscar por código o descripción</label>
+                <input id="buscar-art" placeholder="Ej.: anexo, 7043210060" autocomplete="off">
+            </div>
+            <div class="tabla-scroll">
+                <table class="tabla">
+                    <thead>
+                        <tr>
+                            <th>Código</th>
+                            <th>Descripción</th>
+                            <th>Und.</th>
+                            <th class="num">Precio (con IGV)</th>
+                            <th class="num">Stock</th>
+                            <th class="num">Cant.</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbody-art">
+                        <tr><td colspan="7" class="vacio">Cargando artículos…</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <div id="aviso-art" class="aviso aviso-err" role="alert"></div>
+        </section>
+
+        <section class="tarjeta" aria-labelledby="h-det">
+            <h2 id="h-det">3. Detalle de la venta</h2>
+            <div class="tabla-scroll">
+                <table class="tabla">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Artículo</th>
+                            <th class="num">Cant.</th>
+                            <th class="num">Tarifa</th>
+                            <th class="num">Valor venta</th>
+                            <th class="num">IGV 18%</th>
+                            <th class="num">Subtotal (con IGV)</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbody-lineas"></tbody>
+                    <tfoot id="tfoot-lineas"></tfoot>
+                </table>
+            </div>
+        </section>
+    </div>
+
+    <aside class="col-lateral">
+        <section class="tarjeta" aria-labelledby="h-comp">
+            <h2 id="h-comp">4. Comprobante</h2>
+            <div class="campo">
+                <label>Tipo de comprobante</label>
+                <div class="radios" id="radios-tipo"></div>
+            </div>
+            <div class="fila-form">
+                <div class="campo">
+                    <label for="forma-pago">Forma de pago</label>
+                    <input id="forma-pago" value="Contado" disabled>
+                </div>
+                <div class="campo">
+                    <label for="prev-numero">Serie y número</label>
+                    <input id="prev-numero" disabled>
+                </div>
+            </div>
+        </section>
+
+        <section class="tarjeta" aria-labelledby="h-pago">
+            <h2 id="h-pago">5. Medio de pago</h2>
+            <div class="fila-form">
+                <div class="campo">
+                    <label for="medio">Medio</label>
+                    <select id="medio"></select>
+                </div>
+                <div class="campo">
+                    <label for="monto">Monto (S/)</label>
+                    <input id="monto" disabled>
+                </div>
+            </div>
+            <div id="datos-banco" class="fila-form" hidden>
+                <div class="campo">
+                    <label for="banco">Banco</label>
+                    <select id="banco"></select>
+                </div>
+                <div class="campo">
+                    <label for="operacion">N.º de operación</label>
+                    <input id="operacion" maxlength="40">
+                </div>
+            </div>
+        </section>
+
+        <section class="tarjeta resumen" aria-labelledby="h-res">
+            <h2 id="h-res">Resumen</h2>
+            <dl>
+                <dt>Op. gravada (base imponible)</dt><dd id="r-subtotal"></dd>
+                <dt>IGV (18%)</dt><dd id="r-igv"></dd>
+                <dt class="total">Total a cobrar</dt><dd class="total" id="r-total"></dd>
+                <div class="separador"></div>
+                <dt>Medio de pago</dt><dd id="r-medio"></dd>
+            </dl>
+            <button id="btn-registrar" class="btn btn-bloque" type="button">Registrar venta</button>
+            <div id="errores" class="aviso aviso-err" role="alert"></div>
+        </section>
+    </aside>
+</div>
+
+@section Scripts {
+    <script src="~/js/registrar-venta.js" asp-append-version="true"></script>
+}
