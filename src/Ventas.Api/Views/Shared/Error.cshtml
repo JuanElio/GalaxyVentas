@@ -1,0 +1,10 @@
+@model ErrorViewModel
+@{
+    ViewData["Title"] = "Error";
+}
+
+<section class="tarjeta">
+    <h1>Ocurrió un error inesperado</h1>
+    <p class="sub">Intente nuevamente. Si el problema continúa, comunique este código al administrador:</p>
+    <p class="codigo">@Model.IdSolicitud</p>
+</section>

@@ -1,0 +1,30 @@
+@model IniciarSesionViewModel
+@{
+    ViewData["Title"] = "Iniciar sesión";
+}
+
+<div class="login-caja">
+    <section class="tarjeta" aria-labelledby="h-login">
+        <h1 id="h-login">Iniciar sesión</h1>
+        <p class="sub">Sistema de ventas del punto de venta</p>
+
+        <form asp-action="IniciarSesion" method="post" autocomplete="off" novalidate style="margin-top:16px">
+            <input type="hidden" asp-for="ReturnUrl">
+            <div class="campo">
+                <label asp-for="Login">Usuario</label>
+                <input asp-for="Login" maxlength="16" autocomplete="username" autofocus>
+                <span asp-validation-for="Login" class="error-campo"></span>
+            </div>
+            <div class="campo">
+                <label asp-for="Clave">Contraseña</label>
+                <input asp-for="Clave" type="password" maxlength="16" autocomplete="current-password" value="">
+                <span asp-validation-for="Clave" class="error-campo"></span>
+            </div>
+            <button class="btn btn-bloque" type="submit">Ingresar</button>
+            @if (ViewData.ModelState[string.Empty]?.Errors.Count > 0)
+            {
+                <div asp-validation-summary="ModelOnly" class="aviso aviso-err" role="alert"></div>
+            }
+        </form>
+    </section>
+</div>
