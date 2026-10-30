@@ -122,6 +122,11 @@ public sealed class ClientesEnMemoria : IClienteRepository, IUnitOfWork
     public Task<IReadOnlyList<Cliente>> BuscarActivosPorDocumentoAsync(string numeroDocumento, CancellationToken ct) =>
         Task.FromResult<IReadOnlyList<Cliente>>(_clientes.Where(c => c.NumeroDocumento == numeroDocumento).ToList());
 
+    public Task<IReadOnlyList<Cliente>> BuscarActivosPorNombreAsync(IReadOnlyList<string> palabras, CancellationToken ct) =>
+        Task.FromResult<IReadOnlyList<Cliente>>(_clientes
+            .Where(c => palabras.All(p => $"{c.Nombres} {c.Apellidos} {c.RazonSocial}".Contains(p, StringComparison.OrdinalIgnoreCase)))
+            .ToList());
+
     public Task<bool> ExisteActivoAsync(string tipoDocumento, string numeroDocumento, CancellationToken ct) =>
         Task.FromResult(_clientes.Any(c => c.TipoDocumento == tipoDocumento && c.NumeroDocumento == numeroDocumento));
 
@@ -135,6 +140,8 @@ public sealed class ClientesEnMemoria : IClienteRepository, IUnitOfWork
     }
 
     public Task GuardarCambiosAsync(CancellationToken ct) => Task.CompletedTask;
+
+    public Task<T> EjecutarEnTransaccionAsync<T>(Func<Task<T>> operacion, CancellationToken ct) => operacion();
 }
 
 public sealed class UsuariosEnMemoria : IUsuarioRepository, IVerificadorClave

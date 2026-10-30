@@ -23,9 +23,12 @@ public static class RegistroServicios
 
         services.TryAddSingleton(TimeProvider.System);
         services.AddScoped<AuditoriaInterceptor>();
+        services.AddSingleton<ValoresHeredadosInterceptor>();
         services.AddDbContext<VentasDbContext>((proveedor, opciones) => opciones
             .UseSqlServer(cadenaConexion)
-            .AddInterceptors(proveedor.GetRequiredService<AuditoriaInterceptor>()));
+            .AddInterceptors(
+                proveedor.GetRequiredService<ValoresHeredadosInterceptor>(),
+                proveedor.GetRequiredService<AuditoriaInterceptor>()));
 
         services.AddScoped<IUnitOfWork, UnidadTrabajo>();
         services.AddScoped<IUsuarioRepository, UsuarioRepository>();
@@ -36,6 +39,9 @@ public static class RegistroServicios
         services.AddScoped<ICatalogoRepository, CatalogoRepository>();
         services.AddScoped<IStockService, StockService>();
         services.AddScoped<ICorrelativoService, CorrelativoService>();
+        services.AddScoped<IVentaRepository, VentaRepository>();
+        services.AddScoped<IComprobanteRepository, ComprobanteRepository>();
+        services.AddScoped<IKardexRepository, KardexRepository>();
 
         return services;
     }

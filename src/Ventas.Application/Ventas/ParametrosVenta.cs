@@ -14,4 +14,10 @@ public static class ParametrosVenta
 
     /// <summary>Contado en el catálogo 10 (forma de pago) (P-05).</summary>
     public const string FormaPagoContado = "C00";
+
+    /// <summary>
+    /// Mayor código de comprobante que cabe en SGP_CABECERA_TRANSACCION_BS.numCodComprobante,
+    /// que es numeric(9,4) (P-12).
+    /// </summary>
+    public const long CodigoComprobanteMaximoEnCabecera = 99_999;
 }

@@ -39,6 +39,15 @@ public class ClienteTests
     }
 
     [Fact]
+    public void NombreComprobante_NaturalApellidosYNombres_JuridicaRazonSocial()
+    {
+        Cliente.Registrar(TiposDocumento.Dni, "12345678", "Juan", "Pérez Díaz", null, null, null, null)
+            .NombreComprobante.Should().Be("Pérez Díaz Juan");
+        Cliente.Registrar(TiposDocumento.Ruc, "20123456789", null, null, " EMPRESA SAC ", "AV. LIMA", null, null)
+            .NombreComprobante.Should().Be("EMPRESA SAC");
+    }
+
+    [Fact]
     public void Registrar_PersonaJuridicaSinRazonSocial_LanzaExcepcionDeDominio()
     {
         var accion = () => Cliente.Registrar(TiposDocumento.Ruc, "20123456789", "Ana", "Torres", null, "AV. LIMA", null, null);

@@ -7,6 +7,9 @@ public interface IClienteRepository
     /// <summary>Clientes activos con ese número de documento (puede haber más de uno en datos heredados).</summary>
     Task<IReadOnlyList<Cliente>> BuscarActivosPorDocumentoAsync(string numeroDocumento, CancellationToken ct);
 
+    /// <summary>Clientes activos en los que cada palabra aparece en nombres, apellidos o razón social.</summary>
+    Task<IReadOnlyList<Cliente>> BuscarActivosPorNombreAsync(IReadOnlyList<string> palabras, CancellationToken ct);
+
     Task<bool> ExisteActivoAsync(string tipoDocumento, string numeroDocumento, CancellationToken ct);
 
     Task<Cliente?> ObtenerActivoAsync(long codigo, CancellationToken ct);
@@ -39,6 +42,10 @@ public interface IPuntoVentaRepository
 
     /// <summary>Primer almacén activo (menor código) del punto de venta, o null si no tiene (P-13).</summary>
     Task<string?> ObtenerAlmacenPrincipalAsync(string codigoPuntoVenta, CancellationToken ct);
+
+    Task<ZonaVenta?> ObtenerZonaVentaAsync(string codigoZona, CancellationToken ct);
+
+    Task<TipoOrden?> ObtenerTipoOrdenAsync(string codigo, CancellationToken ct);
 }
 
 public interface ICatalogoRepository
@@ -55,4 +62,10 @@ public interface IStockService
     /// <summary>Stock de cada artículo pedido; los que no tienen movimientos no aparecen (stock 0).</summary>
     Task<IReadOnlyDictionary<string, decimal>> ObtenerStockAsync(
         string codigoPuntoVenta, IReadOnlyCollection<string> codigosArticulo, CancellationToken ct);
+
+    /// <summary>
+    /// Reserva el stock de esos artículos hasta el fin de la transacción, para que dos ventas
+    /// simultáneas no vendan el mismo saldo (RF-08). Requiere una transacción abierta.
+    /// </summary>
+    Task BloquearAsync(string codigoPuntoVenta, IReadOnlyCollection<string> codigosArticulo, CancellationToken ct);
 }

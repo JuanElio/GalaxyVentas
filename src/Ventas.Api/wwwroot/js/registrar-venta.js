@@ -34,24 +34,34 @@
         $('#cliente-res').html(aviso + fichaCliente(cliente));
     };
 
+    const esDocumento = (texto) => /^\d+$/.test(texto);
+
     $('#form-cliente').on('submit', async (e) => {
         e.preventDefault();
-        const numero = $('#num-doc').val().trim();
+        const texto = $('#num-doc').val().trim();
         estado.cliente = null;
         $('#form-nuevo').prop('hidden', true);
 
         try {
-            const encontrados = await getJson('/Clientes/Buscar', { numeroDocumento: numero });
+            const encontrados = await getJson('/Clientes/Buscar', { texto });
             if (encontrados.length === 1) {
                 seleccionarCliente(encontrados[0]);
                 return;
             }
-            // Datos heredados: puede haber varios clientes activos con el mismo documento
+            // Varias coincidencias por nombre, o documentos repetidos en los datos heredados
+            const motivo = esDocumento(texto) ? 'con este documento' : 'que coinciden';
             $('#cliente-res').html(`
-                <div class="aviso aviso-warn">Hay ${encontrados.length} clientes con este documento. Elija uno:</div>
-                <div class="acciones" style="margin-top:10px">
-                    ${encontrados.map((c, i) => `<button class="btn btn-sec btn-sm" type="button" data-elegir="${i}">
-                        ${esc(c.codigo)} · ${esc(c.nombre)}</button>`).join('')}
+                <div class="aviso aviso-warn">Hay ${encontrados.length} clientes ${motivo}${encontrados.length === 20 ? ' (se muestran los 20 más recientes; precise la búsqueda)' : ''}. Elija uno:</div>
+                <div class="tabla-scroll" style="margin-top:10px">
+                    <table class="tabla">
+                        <thead><tr><th>Código</th><th>Documento</th><th>Nombre / razón social</th><th></th></tr></thead>
+                        <tbody>${encontrados.map((c, i) => `<tr>
+                            <td class="codigo">${esc(c.codigo)}</td>
+                            <td>${c.tieneRuc ? 'RUC' : 'Doc.'} ${esc(c.numeroDocumento)}</td>
+                            <td>${esc(c.nombre)}</td>
+                            <td><button class="btn btn-sm" type="button" data-elegir="${i}">Elegir</button></td>
+                        </tr>`).join('')}</tbody>
+                    </table>
                 </div>`);
             $('#cliente-res').data('encontrados', encontrados);
         } catch (jqXHR) {
@@ -86,14 +96,16 @@
     };
 
     $('#cliente-res').on('click', '#btn-nuevo-cliente', () => {
-        const numero = $('#num-doc').val().trim();
+        // Si se buscó por nombre, el documento queda vacío para que el operador lo ingrese
+        const buscado = $('#num-doc').val().trim();
+        const numero = esDocumento(buscado) ? buscado : '';
         $('#form-nuevo')[0].reset();
         $('#nc-tipo').val(numero.length === 11 ? TIPO_RUC : TIPO_DNI);
         $('#nc-num').val(numero);
         mostrarErrores('#nc-errores', []);
         actualizarFormNuevo();
         $('#form-nuevo').prop('hidden', false);
-        $('#nc-nombres').trigger('focus');
+        $(numero ? '#nc-nombres' : '#nc-num').trigger('focus');
     });
     $('#nc-tipo').on('change', actualizarFormNuevo);
     $('#nc-num').on('input', actualizarFormNuevo);
@@ -293,6 +305,7 @@
     };
 
     $('#btn-registrar').on('click', async () => {
+        $('#exito').prop('hidden', true);
         const errores = validar();
         mostrarErrores('#errores', errores);
         if (errores.length) return;
@@ -311,13 +324,30 @@
 
         const $boton = $('#btn-registrar').prop('disabled', true).text('Registrando…');
         try {
-            const venta = await postJson('/Ventas/Registrar', datos);
-            location.href = venta.urlComprobante;
+            const { venta, urlComprobante } = await postJson('/Ventas/Registrar', datos);
+            await nuevaVenta();
+            $('#exito').html(`Venta registrada: <b>${esc(venta.serie)}-${esc(venta.numero)}</b>
+                por S/ ${fmt2(venta.montoTotal)}. <a href="${esc(urlComprobante)}">Ver comprobante</a>`).prop('hidden', false);
         } catch (jqXHR) {
             mostrarErrores('#errores', mensajesError(jqXHR));
+            // Otra venta pudo consumir el stock o el precio pudo cambiar: se recalcula el detalle
+            await cotizar();
+        } finally {
             $boton.prop('disabled', false).text('Registrar venta');
         }
     });
+
+    // Deja la pantalla lista para la siguiente venta, con el stock y el correlativo actualizados
+    const nuevaVenta = async () => {
+        estado.cliente = null;
+        estado.lineas = [];
+        $('#num-doc').val('');
+        $('#cliente-res').html('');
+        $('#form-nuevo').prop('hidden', true);
+        $('#medio').val(MEDIO_EFECTIVO).trigger('change');
+        mostrarErrores('#errores', []);
+        await Promise.all([buscarArticulos(), cotizar(), consultarNumeracion()]);
+    };
 
     // ---------- Inicio ----------
     const opciones = (lista, vacio) =>

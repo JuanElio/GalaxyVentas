@@ -54,7 +54,7 @@ public class MovimientoKardex
         {
             CodigoArticulo = codigoArticulo.Trim(),
             CodigoCanal = codigoCanal.Trim(),
-            CodigoPuntoVenta = codigoPuntoVenta,
+            CodigoPuntoVenta = codigoPuntoVenta.Trim(),
             TipoTransaccion = TipoVenta,
             FechaTransaccion = fechaVenta.Date,
             Cantidad = -cantidad,

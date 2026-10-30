@@ -74,6 +74,32 @@ public class VentasTests(AplicacionPrueba app) : IClassFixture<AplicacionPrueba>
     }
 
     [Fact]
+    public async Task RegistrarVenta_DatosInvalidos_Responde400ConErroresPorCampo()
+    {
+        var cliente = await app.CrearClienteAjaxConSesionAsync("registra400");
+
+        var respuesta = await cliente.PostAsJsonAsync("/Ventas/Registrar",
+            new RegistrarVentaDto(0, "X", [], new PagoVentaDto(4, null, null)));
+
+        Assert.Equal(HttpStatusCode.BadRequest, respuesta.StatusCode);
+        var problema = await respuesta.Content.ReadFromJsonAsync<ValidationProblemDetails>();
+        Assert.Superset(new HashSet<string> { "CodigoCliente", "TipoComprobante", "Lineas", "Pago.CodigoBanco" },
+            problema!.Errors.Keys.ToHashSet());
+    }
+
+    [Fact]
+    public async Task RegistrarVenta_SinTokenAntifalsificacion_Responde400()
+    {
+        var cliente = await app.CrearClienteAjaxConSesionAsync("registrasintok");
+        cliente.DefaultRequestHeaders.Remove("RequestVerificationToken");
+
+        var respuesta = await cliente.PostAsJsonAsync("/Ventas/Registrar",
+            new RegistrarVentaDto(125, "B", [new LineaVentaDto("ART001", 1)], new PagoVentaDto(1, null, null)));
+
+        Assert.Equal(HttpStatusCode.BadRequest, respuesta.StatusCode);
+    }
+
+    [Fact]
     public async Task SiguienteNumero_SerieDelPuntoDeVentaDeLaSesion()
     {
         var cliente = await app.CrearClienteAjaxConSesionAsync("numerador");

@@ -14,7 +14,7 @@ public class MovimientoKardexTests
 
         movimiento.CodigoArticulo.Should().Be("ART001");
         movimiento.CodigoCanal.Should().Be("01");
-        movimiento.CodigoPuntoVenta.Should().Be(" 001");
+        movimiento.CodigoPuntoVenta.Should().Be("001");
         movimiento.TipoTransaccion.Should().Be("VENTA");
         movimiento.FechaTransaccion.Should().Be(new DateTime(2026, 10, 29));
         movimiento.Cantidad.Should().Be(-3);

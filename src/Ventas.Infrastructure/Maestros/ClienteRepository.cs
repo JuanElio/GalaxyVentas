@@ -20,6 +20,18 @@ public sealed class ClienteRepository(VentasDbContext db) : IClienteRepository
             .Take(MaximoCoincidencias)
             .ToListAsync(ct);
 
+    // Muchos clientes heredados tienen el nombre completo en vchNombres: cada palabra se busca en las tres columnas
+    public async Task<IReadOnlyList<Cliente>> BuscarActivosPorNombreAsync(IReadOnlyList<string> palabras, CancellationToken ct)
+    {
+        var consulta = Activos.AsNoTracking();
+        foreach (var palabra in palabras)
+            consulta = consulta.Where(c => (c.Nombres != null && c.Nombres.Contains(palabra))
+                || (c.Apellidos != null && c.Apellidos.Contains(palabra))
+                || (c.RazonSocial != null && c.RazonSocial.Contains(palabra)));
+
+        return await consulta.OrderByDescending(c => c.Id).Take(MaximoCoincidencias).ToListAsync(ct);
+    }
+
     public async Task<bool> ExisteActivoAsync(string tipoDocumento, string numeroDocumento, CancellationToken ct) =>
         await Activos.AnyAsync(c => c.TipoDocumento == tipoDocumento && c.NumeroDocumento == numeroDocumento, ct);
 

@@ -11,11 +11,13 @@ namespace Ventas.Api.Controllers;
 [Produces("application/json")]
 public class ClientesController(ClienteService clientes) : Controller
 {
+    /// <summary>Por número de documento si el texto son solo dígitos; si no, por nombre o razón social.</summary>
     [HttpGet]
     [ProducesResponseType<IReadOnlyList<ClienteDto>>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> Buscar(string? numeroDocumento, CancellationToken ct) =>
-        Json(await clientes.BuscarPorDocumentoAsync(numeroDocumento, ct));
+    public async Task<IActionResult> Buscar(string? texto, CancellationToken ct) =>
+        Json(await clientes.BuscarAsync(texto, ct));
 
     [HttpPost]
     [ProducesResponseType<ClienteDto>(StatusCodes.Status201Created)]

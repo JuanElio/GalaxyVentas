@@ -14,9 +14,30 @@ public class ClientesTests(AplicacionPrueba app) : IClassFixture<AplicacionPrueb
         app.Clientes.Agregar(Cliente.Registrar("2", "41234567", "Rosa", "Quispe", null, null, null, null));
         var cliente = await app.CrearClienteAjaxConSesionAsync("buscador");
 
-        var encontrados = await cliente.GetFromJsonAsync<List<ClienteDto>>("/Clientes/Buscar?numeroDocumento=41234567");
+        var encontrados = await cliente.GetFromJsonAsync<List<ClienteDto>>("/Clientes/Buscar?texto=41234567");
 
         Assert.Equal("Rosa Quispe", Assert.Single(encontrados!).Nombre);
+    }
+
+    [Fact]
+    public async Task Buscar_PorNombre_EncuentraAunqueLasPalabrasEstenEnOtroOrden()
+    {
+        app.Clientes.Agregar(Cliente.Registrar("2", "43334445", "Martha", "Huamán Ccori", null, null, null, null));
+        var cliente = await app.CrearClienteAjaxConSesionAsync("buscanombre");
+
+        var encontrados = await cliente.GetFromJsonAsync<List<ClienteDto>>("/Clientes/Buscar?texto=ccori%20martha");
+
+        Assert.Equal("43334445", Assert.Single(encontrados!).NumeroDocumento);
+    }
+
+    [Fact]
+    public async Task Buscar_NombreMuyCorto_Responde400()
+    {
+        var cliente = await app.CrearClienteAjaxConSesionAsync("buscacorto");
+
+        var respuesta = await cliente.GetAsync("/Clientes/Buscar?texto=ab");
+
+        Assert.Equal(HttpStatusCode.BadRequest, respuesta.StatusCode);
     }
 
     [Fact]
@@ -24,7 +45,7 @@ public class ClientesTests(AplicacionPrueba app) : IClassFixture<AplicacionPrueb
     {
         var cliente = await app.CrearClienteAjaxConSesionAsync("buscador404");
 
-        var respuesta = await cliente.GetAsync("/Clientes/Buscar?numeroDocumento=00000000");
+        var respuesta = await cliente.GetAsync("/Clientes/Buscar?texto=00000000");
 
         Assert.Equal(HttpStatusCode.NotFound, respuesta.StatusCode);
         Assert.Equal("application/problem+json", respuesta.Content.Headers.ContentType?.MediaType);
@@ -89,7 +110,7 @@ public class ClientesTests(AplicacionPrueba app) : IClassFixture<AplicacionPrueb
         var cliente = app.CrearCliente();
         cliente.DefaultRequestHeaders.Add("X-Requested-With", "XMLHttpRequest");
 
-        var respuesta = await cliente.GetAsync("/Clientes/Buscar?numeroDocumento=41234567");
+        var respuesta = await cliente.GetAsync("/Clientes/Buscar?texto=41234567");
 
         Assert.Equal(HttpStatusCode.Unauthorized, respuesta.StatusCode);
     }

@@ -101,4 +101,20 @@ public class ConsultasBaseDatosTests(WebApplicationFactory<Program> factory) : I
         Assert.NotEmpty(encontrados);
         Assert.All(encontrados, c => Assert.True(c.Activo));
     });
+
+    [Fact]
+    public Task Clientes_BuscaPorNombreEnLasTresColumnas() => EnBaseDatosAsync(async servicios =>
+    {
+        var encontrados = await servicios.GetRequiredService<IClienteRepository>()
+            .BuscarActivosPorNombreAsync(["quispe", "rosa"], CancellationToken.None);
+
+        Assert.NotEmpty(encontrados);
+        Assert.True(encontrados.Count <= 20);
+        Assert.All(encontrados, c =>
+        {
+            var texto = $"{c.Nombres} {c.Apellidos} {c.RazonSocial}";
+            Assert.Contains("quispe", texto, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("rosa", texto, StringComparison.OrdinalIgnoreCase);
+        });
+    });
 }

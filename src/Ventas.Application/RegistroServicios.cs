@@ -19,6 +19,7 @@ public static class RegistroServicios
         services.AddScoped<ArticuloService>();
         services.AddScoped<CatalogoService>();
         services.AddScoped<VentaService>();
+        services.AddScoped<RegistroVentaService>();
 
         return services;
     }

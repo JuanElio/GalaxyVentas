@@ -88,9 +88,9 @@ El sistema debe listar los artículos que se pueden vender en un punto de venta 
 
 #### RF-02 — Buscar cliente
 
-El sistema debe permitir buscar un cliente por su número de documento.
+El sistema debe permitir buscar un cliente por su número de documento o por su nombre o razón social.
 
-- **Entrada:** número de documento (DNI/RUC).
+- **Entrada:** un texto: si son solo dígitos, se busca por número de documento (DNI/RUC); si no, por nombre o razón social (mínimo 3 caracteres). En la búsqueda por nombre cada palabra (hasta 5) debe aparecer en `vchNombres`, `vchApellidos` o `vchRazonSocial`, en cualquier orden; muchos clientes heredados tienen el nombre completo en `vchNombres`.
 - **Salida:** código de cliente, tipo y número de documento, nombre o razón social, dirección de facturación.
 - **Fuente:** `SGP_CLIENTE` (`vchNumDocumento`, `vchTipDocumento`, `vchNombres`, `vchApellidos`, `vchRazonSocial`, `vchDirecFacturacion`).
 - **Reglas:** RN-01.

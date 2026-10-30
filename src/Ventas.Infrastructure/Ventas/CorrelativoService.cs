@@ -19,4 +19,20 @@ public sealed class CorrelativoService(VentasDbContext db) : ICorrelativoService
 
         return impresora?.SiguienteNumero;
     }
+
+    /// <summary>
+    /// Lee la impresora con UPDLOCK: otra venta de la misma serie espera hasta el commit, así que
+    /// nunca dos comprobantes toman el mismo número y, si la venta falla, el correlativo no avanza.
+    /// </summary>
+    public async Task<Impresora?> ObtenerParaEmitirAsync(string serie, CancellationToken ct)
+    {
+        if (db.Database.CurrentTransaction is null)
+            throw new InvalidOperationException("Tomar un correlativo requiere una transacción abierta.");
+
+        return await db.Set<Impresora>()
+            .FromSql($"SELECT * FROM SGP_IMPRESORA WITH (UPDLOCK, ROWLOCK) WHERE vchNumSerie = {serie}")
+            .Where(i => EF.Property<bool?>(i, Conversiones.CampoActivo) == true)
+            .OrderBy(i => i.Id)
+            .FirstOrDefaultAsync(ct);
+    }
 }

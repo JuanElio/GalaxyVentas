@@ -24,8 +24,8 @@
             <h2 id="h-cliente">1. Cliente</h2>
             <form id="form-cliente" class="fila-form" autocomplete="off">
                 <div class="campo">
-                    <label for="num-doc">Número de documento (DNI / RUC)</label>
-                    <input id="num-doc" inputmode="numeric" maxlength="16" placeholder="Ej.: 45678912 o 20512345678">
+                    <label for="num-doc">Documento (DNI / RUC) o nombre / razón social</label>
+                    <input id="num-doc" maxlength="100" placeholder="Ej.: 45678912, 20512345678 o quispe rosa">
                 </div>
                 <div class="campo"><button class="btn" type="submit">Buscar</button></div>
             </form>
@@ -187,6 +187,7 @@
             </dl>
             <button id="btn-registrar" class="btn btn-bloque" type="button">Registrar venta</button>
             <div id="errores" class="aviso aviso-err" role="alert"></div>
+            <div id="exito" class="aviso aviso-ok" role="status" hidden></div>
         </section>
     </aside>
 </div>

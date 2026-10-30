@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Ventas.Domain.Inventario;
 using Ventas.Domain.Maestros;
 
@@ -94,6 +95,34 @@ internal sealed class PuntoVentaConfiguration : IEntityTypeConfiguration<PuntoVe
     }
 }
 
+internal sealed class TipoOrdenConfiguration : IEntityTypeConfiguration<TipoOrden>
+{
+    public void Configure(EntityTypeBuilder<TipoOrden> builder)
+    {
+        builder.ToTable("SGP_TIPO_ORDEN");
+        builder.HasKey(t => t.Codigo);
+
+        builder.Property(t => t.Codigo).HasColumnName("vchCodTipoOrden").HasMaxLength(6).IsUnicode(false);
+        builder.Property(t => t.Descripcion).HasColumnName("vchDescripcion").HasMaxLength(64).IsUnicode(false);
+        builder.Property(t => t.CodigoTipoLiquidacion).HasColumnName("intCodTipoLiquidacion");
+        builder.Ignore(t => t.TipoLiquidacion);
+        builder.MapearSituacionRegistro();
+        builder.MapearAuditoriaSgp();
+    }
+}
+
+internal sealed class ZonaVentaConfiguration : IEntityTypeConfiguration<ZonaVenta>
+{
+    public void Configure(EntityTypeBuilder<ZonaVenta> builder)
+    {
+        builder.ToTable("SGP_ZONA_VENTA");
+        builder.HasKey(z => z.Codigo);
+
+        builder.Property(z => z.Codigo).HasColumnName("vchZonaVenta").HasMaxLength(6).IsUnicode(false);
+        builder.Property(z => z.Descripcion).HasColumnName("vchDescripcion").HasMaxLength(30).IsUnicode(false);
+    }
+}
+
 internal sealed class BancoConfiguration : IEntityTypeConfiguration<Banco>
 {
     public void Configure(EntityTypeBuilder<Banco> builder)
@@ -147,7 +176,8 @@ internal sealed class MovimientoKardexConfiguration : IEntityTypeConfiguration<M
         builder.Property(m => m.Id).HasColumnName("CodTransaccionKardex").ValueGeneratedOnAdd();
         builder.Property(m => m.CodigoArticulo).HasColumnName("CodArticulo").HasMaxLength(20).IsUnicode(false);
         builder.Property(m => m.CodigoCanal).HasColumnName("CodTarifaCanal").HasMaxLength(3).IsUnicode(false);
-        builder.Property(m => m.CodigoPuntoVenta).HasColumnName("CodPuntoVenta").HasMaxLength(4).IsUnicode(false);
+        builder.Property(m => m.CodigoPuntoVenta).HasColumnName("CodPuntoVenta").HasMaxLength(4).IsUnicode(false)
+            .HasConversion((ValueConverter)Conversiones.CodigoPuntoVenta);
         builder.Property(m => m.TipoTransaccion).HasColumnName("TipoTransaccion").HasMaxLength(50).IsUnicode(false);
         builder.Property(m => m.FechaTransaccion).HasColumnName("FechaTransaccion").HasColumnType("datetime");
         builder.Property(m => m.Cantidad).HasColumnName("Cantidad").HasColumnType("numeric(18,4)");

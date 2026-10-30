@@ -44,6 +44,15 @@ public class Cliente
             : string.Join(' ', new[] { Nombres, Apellidos }.Where(p => !string.IsNullOrWhiteSpace(p)).Select(p => p!.Trim()));
 
     /// <summary>
+    /// Nombre que se imprime en el comprobante, como en el procedimiento de referencia: persona
+    /// natural → apellidos y nombres; persona jurídica → razón social.
+    /// </summary>
+    public string NombreComprobante =>
+        TipoPersona.Trim() == TiposDocumento.PersonaNatural
+            ? string.Join(' ', new[] { Apellidos, Nombres }.Where(p => !string.IsNullOrWhiteSpace(p)).Select(p => p!.Trim()))
+            : RazonSocial?.Trim() ?? string.Empty;
+
+    /// <summary>
     /// Registra un cliente nuevo (RF-03). El formato del documento lo valida Application;
     /// aquí se aseguran los datos obligatorios según el tipo de persona.
     /// </summary>

@@ -51,3 +51,12 @@ public sealed record ContextoVentaDto(
 
 /// <summary>Serie y próximo número del comprobante; <see cref="Numero"/> es null si la serie no tiene impresora.</summary>
 public sealed record NumeracionDto(string Serie, string? Numero);
+
+/// <summary>Resultado de registrar la venta: transacción, comprobante emitido y total cobrado.</summary>
+public sealed record VentaRegistradaDto(
+    long CodigoTransaccion,
+    long CodigoComprobante,
+    string Serie,
+    string Numero,
+    DateTime FechaEmision,
+    decimal MontoTotal);

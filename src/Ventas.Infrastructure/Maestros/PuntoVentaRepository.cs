@@ -23,4 +23,13 @@ public sealed class PuntoVentaRepository(VentasDbContext db) : IPuntoVentaReposi
             .Select(a => a.CodigoAlmacen)
             .FirstOrDefaultAsync(ct);
     }
+
+    public async Task<ZonaVenta?> ObtenerZonaVentaAsync(string codigoZona, CancellationToken ct) =>
+        await db.Set<ZonaVenta>().AsNoTracking().FirstOrDefaultAsync(z => z.Codigo == codigoZona, ct);
+
+    public async Task<TipoOrden?> ObtenerTipoOrdenAsync(string codigo, CancellationToken ct)
+    {
+        var buscado = codigo.Trim();
+        return await db.Set<TipoOrden>().AsNoTracking().FirstOrDefaultAsync(t => t.Codigo.Trim() == buscado, ct);
+    }
 }
