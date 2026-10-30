@@ -187,10 +187,25 @@
             </dl>
             <button id="btn-registrar" class="btn btn-bloque" type="button">Registrar venta</button>
             <div id="errores" class="aviso aviso-err" role="alert"></div>
-            <div id="exito" class="aviso aviso-ok" role="status" hidden></div>
         </section>
     </aside>
 </div>
+
+<dialog id="dlg-clientes" class="dialogo" aria-labelledby="dlg-clientes-titulo">
+    <div class="dialogo-cab">
+        <div>
+            <h2 id="dlg-clientes-titulo">Seleccione el cliente</h2>
+            <p id="dlg-clientes-sub" class="sub"></p>
+        </div>
+        <button id="dlg-clientes-cerrar" class="btn-icono" type="button" aria-label="Cerrar">×</button>
+    </div>
+    <div class="tabla-scroll dialogo-cuerpo">
+        <table class="tabla">
+            <thead><tr><th>Código</th><th>Documento</th><th>Nombre / razón social</th><th></th></tr></thead>
+            <tbody id="dlg-clientes-filas"></tbody>
+        </table>
+    </div>
+</dialog>
 
 @section Scripts {
     <script src="~/js/registrar-venta.js" asp-append-version="true"></script>

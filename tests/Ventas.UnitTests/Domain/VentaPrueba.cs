@@ -16,7 +16,7 @@ internal static class VentaPrueba
             codigoTarifaCanal: "01",
             codigoAlmacen: "ALM01",
             codigoMoneda: "PEN",
-            formaPago: "CON",
+            formaPago: "C00",
             tipoComprobante: tipoComprobante,
             fechaVenta: new DateTime(2026, 10, 29, 10, 30, 0));
 }

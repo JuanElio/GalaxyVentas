@@ -1,0 +1,40 @@
+@* Layout del inicio de sesión: pantalla dividida con el panel de marca y el formulario, sin menú *@
+<!doctype html>
+<html lang="es">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>@ViewData["Title"] - GalaxyVentas</title>
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true">
+</head>
+<body>
+    <div class="acceso">
+        <aside class="acceso-marca">
+            <div class="marca">
+                <span class="marca-logo">@Iconos.Svg("logo")</span>
+                <span>GalaxyVentas<small>Punto de venta</small></span>
+            </div>
+
+            <div class="acceso-mensaje">
+                <h1>Ventas del punto de venta, en un solo lugar</h1>
+                <p>Registre ventas, emita comprobantes y controle el stock de su punto de venta.</p>
+                <ul class="acceso-beneficios">
+                    <li>@Iconos.Svg("comprobante")<div><b>Facturas y boletas</b><span>Venta, comprobante y pago en una sola operación.</span></div></li>
+                    <li>@Iconos.Svg("stock")<div><b>Stock al día</b><span>Cada venta descuenta el stock de su punto de venta.</span></div></li>
+                    <li>@Iconos.Svg("reporte")<div><b>Reporte de ventas</b><span>Totales por día y recaudado por medio de pago.</span></div></li>
+                </ul>
+            </div>
+
+            <p class="acceso-pie">© @DateTime.Now.Year GalaxyVentas · Uso exclusivo del personal autorizado</p>
+        </aside>
+
+        <main class="acceso-form">
+            @RenderBody()
+        </main>
+    </div>
+
+    <script src="~/lib/jquery/jquery.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

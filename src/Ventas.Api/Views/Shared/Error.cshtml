@@ -1,10 +1,22 @@
 @model ErrorViewModel
 @{
-    ViewData["Title"] = "Error";
+    ViewData["Title"] = Model.Titulo ?? "Error";
 }
 
 <section class="tarjeta">
-    <h1>Ocurrió un error inesperado</h1>
-    <p class="sub">Intente nuevamente. Si el problema continúa, comunique este código al administrador:</p>
-    <p class="codigo">@Model.IdSolicitud</p>
+    @if (Model.Status == 500)
+    {
+        <h1>Ocurrió un error inesperado</h1>
+        <p class="sub">Intente nuevamente. Si el problema continúa, comunique este código al administrador:</p>
+        <p class="codigo">@Model.IdSolicitud</p>
+    }
+    else
+    {
+        <h1>@Model.Titulo</h1>
+        <p class="sub">@Model.Detalle</p>
+    }
+    <p class="acciones">
+        <a class="btn" asp-controller="Ventas" asp-action="Registrar">Registrar venta</a>
+        <a class="btn btn-sec" asp-controller="Consultas" asp-action="Index">Consultas</a>
+    </p>
 </section>

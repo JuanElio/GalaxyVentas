@@ -15,7 +15,12 @@ builder.Services.AddOpenApi();
 
 var app = builder.Build();
 
-app.UseExceptionHandler("/Home/Error");
+// AJAX: ProblemDetails (ManejadorExcepciones). Páginas: la vista de error con el código de la excepción
+app.UseExceptionHandler(new ExceptionHandlerOptions
+{
+    ExceptionHandlingPath = "/Home/Error",
+    StatusCodeSelector = excepcion => ManejadorExcepciones.CrearProblema(excepcion).Status ?? StatusCodes.Status500InternalServerError,
+});
 
 if (app.Environment.IsDevelopment())
 {

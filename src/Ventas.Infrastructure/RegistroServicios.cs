@@ -2,7 +2,9 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Ventas.Application.Comprobantes;
 using Ventas.Application.Comun;
+using Ventas.Infrastructure.Comprobantes;
 using Ventas.Application.Maestros;
 using Ventas.Application.Seguridad;
 using Ventas.Application.Ventas;
@@ -42,6 +44,7 @@ public static class RegistroServicios
         services.AddScoped<IVentaRepository, VentaRepository>();
         services.AddScoped<IComprobanteRepository, ComprobanteRepository>();
         services.AddScoped<IKardexRepository, KardexRepository>();
+        services.AddScoped<IConsultaVentasRepository, ConsultaVentasRepository>();
 
         return services;
     }

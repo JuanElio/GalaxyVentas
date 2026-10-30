@@ -3,7 +3,9 @@ using Microsoft.AspNetCore.TestHost;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Ventas.Application.Comprobantes;
 using Ventas.Application.Maestros;
+using Ventas.Application.Reportes;
 using Ventas.Application.Seguridad;
 using Ventas.Application.Ventas;
 using Ventas.Domain.Comun;
@@ -141,6 +143,26 @@ public class RegistroVentaBaseDatosTests(WebApplicationFactory<Program> factory)
             JOIN SGP_MEDIO_PAGO_BS mp ON mp.numCodMediPago = mpc.numCodMediPago
             WHERE mpc.numCodComprobante = {c} AND mp.numCodTransaccion = {t}
             """));
+
+        // Consultas y reporte sobre la venta recién registrada (RF-16, RF-17, RF-22)
+        var consultas = servicios.GetRequiredService<ConsultaVentasService>();
+        Assert.Equal(c, await consultas.BuscarComprobanteDeVentaAsync(t, CancellationToken.None));
+        Assert.Equal(c, await consultas.BuscarComprobanteAsync("B", venta.Numero, CancellationToken.None));
+        var detalle = await consultas.ObtenerComprobanteAsync(c, CancellationToken.None);
+        Assert.Equal("BOLETA", detalle.TipoComprobante);
+        Assert.Equal("Cancelado", detalle.Estado);
+        Assert.Equal("pruebas", detalle.Usuario);
+        Assert.Equal(articulo, Assert.Single(detalle.Detalle).CodigoArticulo);
+        Assert.Equal(venta.MontoTotal, Assert.Single(detalle.Pagos).Monto);
+
+        var hoy = DateTime.Today;
+        var reporte = await servicios.GetRequiredService<ReporteVentasService>().GenerarAsync(
+            new FiltroReporteVentasDto(hoy, hoy, "B", 1, "pruebas"), CancellationToken.None);
+        var fila = Assert.Single(reporte.Filas, f => f.CodigoComprobante == c);
+        Assert.Equal($"B001-{venta.Numero}", fila.Comprobante);
+        Assert.Equal("EFECTIVO", fila.MedioPago);
+        Assert.Equal(venta.MontoTotal, fila.MontoTotal);
+        Assert.Contains(reporte.PorMedioPago, m => m.MedioPago == "EFECTIVO" && m.Monto >= venta.MontoTotal);
 
         // Al salir del using la transacción se deshace: la BD queda como estaba
     }

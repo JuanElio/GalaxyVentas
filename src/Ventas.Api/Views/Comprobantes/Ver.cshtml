@@ -1,0 +1,116 @@
+@model Ventas.Application.Comprobantes.ComprobanteDetalleDto
+@{
+    ViewData["Title"] = $"{Model.TipoComprobante} {Model.NumeroCompleto}";
+    var nuevo = ViewData["Nuevo"] is true;
+}
+
+@if (nuevo)
+{
+    <div class="aviso aviso-ok no-imprimir" style="max-width:860px;margin:0 auto 16px">
+        <b>Venta registrada.</b> Transacción N.º @Model.CodigoTransaccion, comprobante @Model.NumeroCompleto.
+    </div>
+}
+
+<article class="tarjeta doc">
+    <div class="doc-cab">
+        <div class="doc-emisor">
+            <h2>GalaxyVentas</h2>
+            <p>@Model.PuntoVenta · Punto de venta @Model.CodigoPuntoVenta</p>
+            @if (Model.ZonaVenta is not null)
+            {
+                <p>Zona de venta @Model.ZonaVenta</p>
+            }
+        </div>
+        <div class="doc-numero">
+            <div class="tipo">@Model.TipoComprobante de venta</div>
+            <div class="serie">@Model.NumeroCompleto</div>
+        </div>
+    </div>
+
+    <div class="doc-datos">
+        <div><span>Cliente</span>@Model.NombreCliente</div>
+        <div><span>Documento</span>@Model.Documento</div>
+        <div><span>Dirección</span>@(string.IsNullOrWhiteSpace(Model.DireccionCliente) ? "—" : Model.DireccionCliente)</div>
+        <div><span>Fecha de emisión</span>@Formato.FechaHora(Model.FechaEmision)</div>
+        <div><span>Forma de pago</span>@Model.FormaPago</div>
+        <div><span>Moneda</span>@Model.Moneda</div>
+        <div><span>Estado</span><span class="chip">@Model.Estado</span></div>
+    </div>
+
+    <h3>Detalle</h3>
+    <div class="tabla-scroll">
+        <table class="tabla">
+            <thead>
+                <tr>
+                    <th>Ítem</th><th>Código</th><th>Descripción</th><th>Und.</th>
+                    <th class="num">Cant.</th><th class="num">P. unit.</th><th class="num">Valor venta</th>
+                    <th class="num">IGV</th><th class="num">Subtotal (con IGV)</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var d in Model.Detalle)
+                {
+                    <tr>
+                        <td>@d.Item</td>
+                        <td class="codigo">@d.CodigoArticulo</td>
+                        <td>@d.Descripcion</td>
+                        <td>@d.UnidadMedida</td>
+                        <td class="num">@Formato.Cantidad(d.Cantidad)</td>
+                        <td class="num">@Formato.Importe(d.PrecioUnitario)</td>
+                        <td class="num">@Formato.Importe(d.ValorVenta)</td>
+                        <td class="num">@Formato.Importe(d.Igv)</td>
+                        <td class="num">@Formato.Importe(d.SubTotal)</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <div class="resumen doc-totales" style="margin-top:14px">
+        <dl>
+            <dt>Op. gravada</dt><dd>@Formato.Soles(Model.SubTotal)</dd>
+            <dt>Descuentos</dt><dd>@Formato.Soles(Model.MontoDescuento)</dd>
+            <dt>IGV (18%)</dt><dd>@Formato.Soles(Model.MontoIgv)</dd>
+            <dt class="total">Importe total</dt><dd class="total">@Formato.Soles(Model.MontoTotal)</dd>
+        </dl>
+    </div>
+
+    <h3>Medio de pago</h3>
+    <div class="tabla-scroll">
+        <table class="tabla">
+            <thead>
+                <tr><th>Medio</th><th>Banco</th><th>N.º operación</th><th class="num">Monto asignado</th></tr>
+            </thead>
+            <tbody>
+                @foreach (var p in Model.Pagos)
+                {
+                    <tr>
+                        <td>@p.MedioPago</td>
+                        <td>@(p.Banco ?? "—")</td>
+                        <td>@(p.NumeroOperacion ?? "—")</td>
+                        <td class="num">@Formato.Importe(p.Monto)</td>
+                    </tr>
+                }
+            </tbody>
+            <tfoot>
+                <tr><td colspan="3">Monto pagado</td><td class="num">@Formato.Importe(Model.MontoPagado)</td></tr>
+            </tfoot>
+        </table>
+    </div>
+
+    <h3>Trazabilidad</h3>
+    <dl class="ficha">
+        <dt>Transacción</dt><dd><a asp-controller="Consultas" asp-action="Index" asp-route-transaccion="@Model.CodigoTransaccion">N.º @Model.CodigoTransaccion</a></dd>
+        <dt>Código de comprobante</dt><dd class="codigo">@Model.CodigoComprobante</dd>
+        <dt>Ítems ↔ líneas</dt><dd>@Model.Enlaces</dd>
+        <dt>Canal / almacén / tipo de orden</dt><dd>@Model.Canal · @Model.Almacen · @Model.TipoOrden</dd>
+        <dt>Registrado por</dt><dd>@Model.Usuario el @Formato.FechaHora(Model.FechaVenta)</dd>
+    </dl>
+
+    <div class="acciones no-imprimir">
+        <a class="btn" asp-controller="Ventas" asp-action="Registrar">Nueva venta</a>
+        <a class="btn btn-sec" asp-controller="Consultas" asp-action="Index">Consultas</a>
+        <a class="btn btn-sec" asp-controller="Reportes" asp-action="Ventas">Reporte de ventas</a>
+        <button class="btn btn-sec" type="button" onclick="window.print()">Imprimir</button>
+    </div>
+</article>

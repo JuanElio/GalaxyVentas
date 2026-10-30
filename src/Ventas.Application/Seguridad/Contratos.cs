@@ -5,6 +5,9 @@ namespace Ventas.Application.Seguridad;
 public interface IUsuarioRepository
 {
     Task<Usuario?> ObtenerPorLoginAsync(string login, CancellationToken ct);
+
+    /// <summary>Usuarios activos asignados al punto de venta, ordenados por nombre.</summary>
+    Task<IReadOnlyList<Usuario>> ListarActivosPorPuntoVentaAsync(string codigoPuntoVenta, CancellationToken ct);
 }
 
 /// <summary>Compara la contraseña ingresada con la guardada en SGP_USUARIO (P-02).</summary>

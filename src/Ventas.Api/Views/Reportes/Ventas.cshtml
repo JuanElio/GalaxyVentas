@@ -1,0 +1,140 @@
+@model ReporteVentasViewModel
+@{
+    ViewData["Title"] = "Reporte de ventas";
+    var f = Model.Filtro;
+    var r = Model.Reporte;
+}
+
+<div class="titulo-pagina">
+    <h1>Reporte de ventas registradas</h1>
+    <p class="sub">Ventas del punto de venta <b>@Model.PuntoVenta</b></p>
+</div>
+
+<section class="tarjeta no-imprimir" aria-labelledby="h-filtros">
+    <h2 id="h-filtros">Filtros</h2>
+    <form method="get" asp-action="Ventas" class="fila-form" autocomplete="off" novalidate>
+        <div class="campo">
+            <label for="f-desde">Fecha desde</label>
+            <input id="f-desde" name="desde" type="date" value="@f.Desde?.ToString("yyyy-MM-dd")">
+        </div>
+        <div class="campo">
+            <label for="f-hasta">Fecha hasta</label>
+            <input id="f-hasta" name="hasta" type="date" value="@f.Hasta?.ToString("yyyy-MM-dd")">
+        </div>
+        <div class="campo">
+            <label for="f-tipo">Tipo de comprobante</label>
+            <select id="f-tipo" name="tipoComprobante">
+                <option value="">Todos</option>
+                @foreach (var t in Model.TiposComprobante)
+                {
+                    <option value="@t.Valor" selected="@(f.TipoComprobante == t.Valor)">@t.Descripcion</option>
+                }
+            </select>
+        </div>
+        <div class="campo">
+            <label for="f-medio">Medio de pago</label>
+            <select id="f-medio" name="medioPago">
+                <option value="">Todos</option>
+                @foreach (var m in Model.MediosPago)
+                {
+                    <option value="@m.Valor" selected="@(f.MedioPago?.ToString() == m.Valor)">@m.Descripcion</option>
+                }
+            </select>
+        </div>
+        <div class="campo">
+            <label for="f-usuario">Usuario</label>
+            <select id="f-usuario" name="usuario">
+                <option value="">Todos</option>
+                @foreach (var u in Model.Usuarios)
+                {
+                    <option value="@u.Valor" selected="@(string.Equals(f.Usuario, u.Valor, StringComparison.OrdinalIgnoreCase))">@u.Descripcion</option>
+                }
+            </select>
+        </div>
+        <div class="campo"><button class="btn" type="submit">Generar reporte</button></div>
+    </form>
+    @if (Model.Errores.Count > 0)
+    {
+        <div class="aviso aviso-err" role="alert">
+            <ul>@foreach (var e in Model.Errores) { <li>@e</li> }</ul>
+        </div>
+    }
+</section>
+
+@if (r is not null)
+{
+    <section class="tarjeta" aria-labelledby="h-res">
+        <h2 id="h-res">Resultado <span class="sub" style="font-weight:400;font-size:.88rem">del @Formato.Fecha(r.Desde) al @Formato.Fecha(r.Hasta)</span></h2>
+
+        <div class="totales-reporte">
+            <div><span>Comprobantes</span><b>@r.CantidadComprobantes</b></div>
+            <div><span>Subtotal</span><b>@Formato.Soles(r.SubTotal)</b></div>
+            <div><span>IGV</span><b>@Formato.Soles(r.MontoIgv)</b></div>
+            <div><span>Total</span><b>@Formato.Soles(r.MontoTotal)</b></div>
+        </div>
+
+        <div class="tabla-scroll">
+            <table class="tabla">
+                <thead>
+                    <tr>
+                        <th>Fecha</th><th>Comprobante</th><th>Cliente</th>
+                        <th class="num">Subtotal</th><th class="num">IGV</th><th class="num">Total</th>
+                        <th>Medio de pago</th><th>Estado</th><th>Usuario</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (r.Filas.Count == 0)
+                    {
+                        <tr><td colspan="9" class="vacio">No hay ventas en el rango y los filtros indicados.</td></tr>
+                    }
+                    @foreach (var fila in r.Filas)
+                    {
+                        <tr>
+                            <td>@Formato.FechaHora(fila.FechaEmision)</td>
+                            <td><a class="codigo" href="/Comprobantes/Ver/@fila.CodigoComprobante">@fila.TipoComprobante @fila.Comprobante</a></td>
+                            <td>@fila.Cliente<br><span class="sub">@fila.Documento</span></td>
+                            <td class="num">@Formato.Importe(fila.SubTotal)</td>
+                            <td class="num">@Formato.Importe(fila.MontoIgv)</td>
+                            <td class="num">@Formato.Importe(fila.MontoTotal)</td>
+                            <td>@fila.MedioPago</td>
+                            <td><span class="chip">@fila.Estado</span></td>
+                            <td>@fila.Usuario</td>
+                        </tr>
+                    }
+                </tbody>
+                @if (r.Filas.Count > 0)
+                {
+                    <tfoot>
+                        <tr>
+                            <td colspan="3">Totales (@r.CantidadComprobantes comprobantes)</td>
+                            <td class="num">@Formato.Importe(r.SubTotal)</td>
+                            <td class="num">@Formato.Importe(r.MontoIgv)</td>
+                            <td class="num">@Formato.Importe(r.MontoTotal)</td>
+                            <td colspan="3"></td>
+                        </tr>
+                    </tfoot>
+                }
+            </table>
+        </div>
+
+        <h3>Recaudado por medio de pago</h3>
+        <div class="tabla-scroll">
+            <table class="tabla" style="max-width:520px">
+                <thead><tr><th>Medio</th><th class="num">Pagos</th><th class="num">Monto</th></tr></thead>
+                <tbody>
+                    @foreach (var m in r.PorMedioPago)
+                    {
+                        <tr><td>@m.MedioPago</td><td class="num">@m.Pagos</td><td class="num">@Formato.Importe(m.Monto)</td></tr>
+                    }
+                </tbody>
+                <tfoot>
+                    <tr><td>Total</td><td class="num">@r.PorMedioPago.Sum(m => m.Pagos)</td><td class="num">@Formato.Importe(r.PorMedioPago.Sum(m => m.Monto))</td></tr>
+                </tfoot>
+            </table>
+        </div>
+
+        <div class="acciones no-imprimir">
+            <button class="btn btn-sec" type="button" onclick="window.print()">Imprimir</button>
+        </div>
+    </section>
+}

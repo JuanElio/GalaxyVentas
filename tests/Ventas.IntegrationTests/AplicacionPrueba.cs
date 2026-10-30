@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
 using Moq;
+using Ventas.Application.Comprobantes;
 using Ventas.Application.Comun;
 using Ventas.Application.Maestros;
 using Ventas.Application.Seguridad;
@@ -33,6 +34,10 @@ public sealed partial class AplicacionPrueba : WebApplicationFactory<Program>
 
     public Mock<ICorrelativoService> Correlativos { get; } = new();
 
+    public Mock<IConsultaVentasRepository> Consultas { get; } = new();
+
+    public Mock<ICatalogoRepository> Catalogos { get; } = new();
+
     public AplicacionPrueba()
     {
         // Punto de venta 001 con un artículo (ART001, 20.00 con IGV, 50 en stock) y la serie B001
@@ -51,6 +56,9 @@ public sealed partial class AplicacionPrueba : WebApplicationFactory<Program>
         Stock.Setup(s => s.ObtenerStockAsync(It.IsAny<string>(), It.IsAny<IReadOnlyCollection<string>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase) { ["ART001"] = 50 });
         Correlativos.Setup(c => c.ConsultarSiguienteAsync("B001", It.IsAny<CancellationToken>())).ReturnsAsync(7);
+        Consultas.Setup(c => c.ListarAsync(It.IsAny<FiltroVentasRegistradas>(), It.IsAny<CancellationToken>())).ReturnsAsync([]);
+        Catalogos.Setup(c => c.ListarItemsActivosAsync(It.IsAny<int>(), It.IsAny<CancellationToken>())).ReturnsAsync([]);
+        Catalogos.Setup(c => c.ListarBancosActivosAsync(It.IsAny<CancellationToken>())).ReturnsAsync([]);
     }
 
     private static readonly ArticuloConTarifas ArticuloDePrueba = new(
@@ -68,6 +76,8 @@ public sealed partial class AplicacionPrueba : WebApplicationFactory<Program>
             services.AddSingleton(Articulos.Object);
             services.AddSingleton(Stock.Object);
             services.AddSingleton(Correlativos.Object);
+            services.AddSingleton(Consultas.Object);
+            services.AddSingleton(Catalogos.Object);
         });
 
     /// <summary>Cliente HTTP con sesión iniciada, cabecera AJAX y token antifalsificación.</summary>
@@ -158,6 +168,10 @@ public sealed class UsuariosEnMemoria : IUsuarioRepository, IVerificadorClave
 
     public Task<Usuario?> ObtenerPorLoginAsync(string login, CancellationToken ct) =>
         Task.FromResult(_usuarios.GetValueOrDefault(login));
+
+    public Task<IReadOnlyList<Usuario>> ListarActivosPorPuntoVentaAsync(string codigoPuntoVenta, CancellationToken ct) =>
+        Task.FromResult<IReadOnlyList<Usuario>>(_usuarios.Values
+            .Where(u => u.Activo && u.PerteneceAPuntoVenta(codigoPuntoVenta)).ToList());
 
     public Task<bool> VerificarAsync(string login, string clave, CancellationToken ct) =>
         Task.FromResult(_usuarios.ContainsKey(login) && clave == AplicacionPrueba.Clave);

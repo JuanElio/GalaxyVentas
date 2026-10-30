@@ -1,4 +1,14 @@
 @inject Microsoft.AspNetCore.Antiforgery.IAntiforgery Antiforgery
+@{
+    var conSesion = User.Identity?.IsAuthenticated == true;
+    var nombre = User.FindFirst(ClaimsSesion.Nombre)?.Value ?? User.Identity?.Name ?? string.Empty;
+    var iniciales = string.Concat(nombre.Split(' ', StringSplitOptions.RemoveEmptyEntries).Take(2).Select(p => char.ToUpperInvariant(p[0])));
+    var controlador = ViewContext.RouteData.Values["controller"]?.ToString();
+
+    // Opción del menú resaltada: el comprobante pertenece a Consultas
+    string? Actual(params string[] controladores) =>
+        controladores.Any(c => string.Equals(c, controlador, StringComparison.OrdinalIgnoreCase)) ? "page" : null;
+}
 <!doctype html>
 <html lang="es">
 <head>
@@ -10,26 +20,50 @@
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true">
 </head>
 <body>
-    <header class="barra">
-        <a class="marca" asp-controller="Home" asp-action="Index">GalaxyVentas</a>
-        @if (User.Identity?.IsAuthenticated == true)
+    <div class="app @(conSesion ? "con-menu" : null)">
+        @if (conSesion)
         {
-            <nav>
-                <a asp-controller="Home" asp-action="Index">Inicio</a>
-                <a asp-controller="Ventas" asp-action="Registrar">Registrar venta</a>
-            </nav>
-            <div class="sesion">
-                <span>@User.FindFirst(ClaimsSesion.Nombre)?.Value · Punto de venta @User.FindFirst(ClaimsSesion.PuntoVenta)?.Value</span>
-                <form asp-controller="Cuenta" asp-action="CerrarSesion" method="post">
-                    <button class="btn btn-sec btn-sm" type="submit">Cerrar sesión</button>
-                </form>
-            </div>
-        }
-    </header>
+            <header class="barra-movil">
+                <button class="btn-menu" type="button" data-menu-abrir aria-label="Abrir el menú" aria-controls="menu-lateral" aria-expanded="false">@Iconos.Svg("menu")</button>
+                <a class="marca" asp-controller="Home" asp-action="Index">
+                    <span class="marca-logo">@Iconos.Svg("logo")</span>GalaxyVentas
+                </a>
+            </header>
 
-    <main class="contenedor">
-        @RenderBody()
-    </main>
+            <aside id="menu-lateral" class="menu-lateral" aria-label="Menú principal">
+                <a class="marca" asp-controller="Home" asp-action="Index">
+                    <span class="marca-logo">@Iconos.Svg("logo")</span>
+                    <span>GalaxyVentas<small>Punto de venta</small></span>
+                </a>
+
+                <p class="menu-titulo">Menú</p>
+                <nav>
+                    <a asp-controller="Home" asp-action="Index" aria-current="@Actual("Home")">@Iconos.Svg("inicio")Inicio</a>
+                    <a asp-controller="Ventas" asp-action="Registrar" aria-current="@Actual("Ventas")">@Iconos.Svg("venta")Registrar venta</a>
+                    <a asp-controller="Consultas" asp-action="Index" aria-current="@Actual("Consultas", "Comprobantes")">@Iconos.Svg("consultas")Consultas</a>
+                    <a asp-controller="Reportes" asp-action="Ventas" aria-current="@Actual("Reportes")">@Iconos.Svg("reporte")Reporte de ventas</a>
+                </nav>
+
+                <div class="menu-usuario">
+                    <div class="persona">
+                        <span class="avatar" aria-hidden="true">@iniciales</span>
+                        <div>
+                            <div class="nombre">@nombre</div>
+                            <div class="detalle">@User.Identity!.Name · Punto de venta @User.FindFirst(ClaimsSesion.PuntoVenta)?.Value</div>
+                        </div>
+                    </div>
+                    <form asp-controller="Cuenta" asp-action="CerrarSesion" method="post">
+                        <button class="btn-salir" type="submit">@Iconos.Svg("salir")Cerrar sesión</button>
+                    </form>
+                </div>
+            </aside>
+            <div class="velo" data-menu-cerrar></div>
+        }
+
+        <main class="contenedor">
+            @RenderBody()
+        </main>
+    </div>
 
     <script src="~/lib/jquery/jquery.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>

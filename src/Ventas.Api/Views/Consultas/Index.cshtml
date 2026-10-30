@@ -1,0 +1,70 @@
+@model ConsultasViewModel
+@{
+    ViewData["Title"] = "Consultas";
+    var porComprobante = Model.Pestana == "comprobante";
+}
+
+<div class="titulo-pagina">
+    <h1>Consultas</h1>
+    <p class="sub">Venta por número de transacción o comprobante por tipo y número, en su punto de venta</p>
+</div>
+
+<section class="tarjeta">
+    <div class="fila-form" style="align-items:flex-start">
+        <form method="get" asp-action="Index" class="fila-form" autocomplete="off">
+            <div class="campo">
+                <label for="q-trans">N.º de transacción</label>
+                <input id="q-trans" name="transaccion" inputmode="numeric" value="@(porComprobante ? null : Model.Transaccion)" placeholder="Ej.: 50229">
+            </div>
+            <div class="campo"><button class="btn" type="submit">Buscar venta</button></div>
+        </form>
+
+        <form method="get" asp-action="Index" class="fila-form" autocomplete="off">
+            <div class="campo">
+                <label for="q-tipo">Tipo</label>
+                <select id="q-tipo" name="tipoComprobante">
+                    <option value="B" selected="@(Model.TipoComprobante != "F")">Boleta</option>
+                    <option value="F" selected="@(Model.TipoComprobante == "F")">Factura</option>
+                </select>
+            </div>
+            <div class="campo">
+                <label for="q-numero">Número</label>
+                <input id="q-numero" name="numero" inputmode="numeric" value="@Model.Numero" placeholder="Ej.: 845">
+            </div>
+            <div class="campo"><button class="btn" type="submit">Buscar comprobante</button></div>
+        </form>
+    </div>
+
+    @if (Model.Error is not null)
+    {
+        <div class="aviso aviso-err" role="alert">@Model.Error</div>
+    }
+</section>
+
+<section class="tarjeta">
+    <h2>Últimas ventas del punto de venta</h2>
+    <div class="tabla-scroll">
+        <table class="tabla">
+            <thead>
+                <tr><th>Transacción</th><th>Fecha</th><th>Cliente</th><th>Comprobante</th><th class="num">Total</th><th></th></tr>
+            </thead>
+            <tbody>
+                @if (Model.Recientes.Count == 0)
+                {
+                    <tr><td colspan="6" class="vacio">Todavía no hay ventas registradas en este punto de venta.</td></tr>
+                }
+                @foreach (var v in Model.Recientes)
+                {
+                    <tr>
+                        <td class="codigo">@v.CodigoTransaccion</td>
+                        <td>@Formato.FechaHora(v.FechaEmision)</td>
+                        <td>@v.Cliente</td>
+                        <td class="codigo">@v.Comprobante</td>
+                        <td class="num">@Formato.Importe(v.MontoTotal)</td>
+                        <td><a class="btn btn-sm btn-sec" href="/Comprobantes/Ver/@v.CodigoComprobante">Ver</a></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</section>

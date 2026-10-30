@@ -11,4 +11,16 @@ public sealed class UsuarioRepository(VentasDbContext db) : IUsuarioRepository
         await db.Set<Usuario>()
             .AsNoTracking()
             .FirstOrDefaultAsync(u => u.Login == login, ct);
+
+    // SGP_USUARIO guarda el punto de venta con espacio inicial (' 001')
+    public async Task<IReadOnlyList<Usuario>> ListarActivosPorPuntoVentaAsync(string codigoPuntoVenta, CancellationToken ct)
+    {
+        var puntoVenta = codigoPuntoVenta.Trim();
+        return await db.Set<Usuario>()
+            .AsNoTracking()
+            .Where(u => u.CodigoPuntoVenta != null && u.CodigoPuntoVenta.Trim() == puntoVenta
+                && EF.Property<bool?>(u, Conversiones.CampoActivo) == true)
+            .OrderBy(u => u.Nombre)
+            .ToListAsync(ct);
+    }
 }

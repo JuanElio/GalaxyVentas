@@ -48,22 +48,8 @@
                 seleccionarCliente(encontrados[0]);
                 return;
             }
-            // Varias coincidencias por nombre, o documentos repetidos en los datos heredados
-            const motivo = esDocumento(texto) ? 'con este documento' : 'que coinciden';
-            $('#cliente-res').html(`
-                <div class="aviso aviso-warn">Hay ${encontrados.length} clientes ${motivo}${encontrados.length === 20 ? ' (se muestran los 20 más recientes; precise la búsqueda)' : ''}. Elija uno:</div>
-                <div class="tabla-scroll" style="margin-top:10px">
-                    <table class="tabla">
-                        <thead><tr><th>Código</th><th>Documento</th><th>Nombre / razón social</th><th></th></tr></thead>
-                        <tbody>${encontrados.map((c, i) => `<tr>
-                            <td class="codigo">${esc(c.codigo)}</td>
-                            <td>${c.tieneRuc ? 'RUC' : 'Doc.'} ${esc(c.numeroDocumento)}</td>
-                            <td>${esc(c.nombre)}</td>
-                            <td><button class="btn btn-sm" type="button" data-elegir="${i}">Elegir</button></td>
-                        </tr>`).join('')}</tbody>
-                    </table>
-                </div>`);
-            $('#cliente-res').data('encontrados', encontrados);
+            $('#cliente-res').html('');
+            abrirSeleccionClientes(texto, encontrados);
         } catch (jqXHR) {
             if (jqXHR.status === 404) {
                 $('#cliente-res').html(`
@@ -77,10 +63,38 @@
         }
     });
 
-    $('#cliente-res').on('click', '[data-elegir]', (e) => {
-        const encontrados = $('#cliente-res').data('encontrados');
+    // ---------- 1.0 Ventana para elegir entre varios clientes ----------
+    // Varias coincidencias por nombre, o documentos repetidos en los datos heredados
+    const MAXIMO_COINCIDENCIAS = 20;
+    const dialogo = document.getElementById('dlg-clientes');
+
+    const abrirSeleccionClientes = (texto, encontrados) => {
+        const motivo = esDocumento(texto) ? `con el documento ${texto}` : `que coinciden con «${texto}»`;
+        const recorte = encontrados.length === MAXIMO_COINCIDENCIAS
+            ? ` Se muestran los ${MAXIMO_COINCIDENCIAS} más recientes; precise la búsqueda si no está el que busca.`
+            : '';
+        $('#dlg-clientes-sub').text(`${encontrados.length} clientes ${motivo}.${recorte}`);
+        $('#dlg-clientes-filas').html(encontrados.map((c, i) => `<tr>
+            <td class="codigo">${esc(c.codigo)}</td>
+            <td>${c.tieneRuc ? 'RUC' : 'Doc.'} ${esc(c.numeroDocumento)}</td>
+            <td><b>${esc(c.nombre)}</b><br><span class="sub">${esc(c.direccionFacturacion) || 'Sin dirección'}</span></td>
+            <td><button class="btn btn-sm" type="button" data-elegir="${i}">Elegir</button></td>
+        </tr>`).join(''));
+        $(dialogo).data('encontrados', encontrados);
+        dialogo.showModal();
+        $('#dlg-clientes-filas [data-elegir]').first().trigger('focus');
+    };
+
+    $('#dlg-clientes-filas').on('click', '[data-elegir]', (e) => {
+        const encontrados = $(dialogo).data('encontrados');
+        dialogo.close();
         seleccionarCliente(encontrados[Number($(e.currentTarget).data('elegir'))]);
     });
+
+    // Cerrar sin elegir (botón, Esc o clic fuera de la ventana): se vuelve al cuadro de búsqueda
+    $('#dlg-clientes-cerrar').on('click', () => dialogo.close());
+    $(dialogo).on('click', (e) => { if (e.target === dialogo) dialogo.close(); });
+    $(dialogo).on('close', () => { if (!estado.cliente) $('#num-doc').trigger('focus'); });
 
     // ---------- 1.1 Registrar cliente ----------
     // Misma regla que el servidor: DNI → natural; RUC 20… → jurídica; otro RUC → natural con negocio
@@ -305,7 +319,6 @@
     };
 
     $('#btn-registrar').on('click', async () => {
-        $('#exito').prop('hidden', true);
         const errores = validar();
         mostrarErrores('#errores', errores);
         if (errores.length) return;
@@ -324,30 +337,16 @@
 
         const $boton = $('#btn-registrar').prop('disabled', true).text('Registrando…');
         try {
-            const { venta, urlComprobante } = await postJson('/Ventas/Registrar', datos);
-            await nuevaVenta();
-            $('#exito').html(`Venta registrada: <b>${esc(venta.serie)}-${esc(venta.numero)}</b>
-                por S/ ${fmt2(venta.montoTotal)}. <a href="${esc(urlComprobante)}">Ver comprobante</a>`).prop('hidden', false);
+            // 201: se muestra el comprobante emitido con el aviso de venta registrada
+            const { urlComprobante } = await postJson('/Ventas/Registrar', datos);
+            location.href = `${urlComprobante}?nuevo=true`;
         } catch (jqXHR) {
             mostrarErrores('#errores', mensajesError(jqXHR));
             // Otra venta pudo consumir el stock o el precio pudo cambiar: se recalcula el detalle
             await cotizar();
-        } finally {
             $boton.prop('disabled', false).text('Registrar venta');
         }
     });
-
-    // Deja la pantalla lista para la siguiente venta, con el stock y el correlativo actualizados
-    const nuevaVenta = async () => {
-        estado.cliente = null;
-        estado.lineas = [];
-        $('#num-doc').val('');
-        $('#cliente-res').html('');
-        $('#form-nuevo').prop('hidden', true);
-        $('#medio').val(MEDIO_EFECTIVO).trigger('change');
-        mostrarErrores('#errores', []);
-        await Promise.all([buscarArticulos(), cotizar(), consultarNumeracion()]);
-    };
 
     // ---------- Inicio ----------
     const opciones = (lista, vacio) =>

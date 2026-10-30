@@ -20,6 +20,16 @@
   --rf-text: #0b4f9c;
   --radius: 10px;
   --shadow: 0 1px 2px rgba(0, 0, 0, .06), 0 2px 8px rgba(0, 0, 0, .04);
+  /* Menú lateral y panel de marca del inicio de sesión */
+  --menu-bg: #0f2b46;
+  --menu-bg-2: #163c61;
+  --menu-text: #c6d4e3;
+  --menu-text-fuerte: #ffffff;
+  --menu-hover: rgba(255, 255, 255, .08);
+  --menu-activo: rgba(255, 255, 255, .14);
+  --menu-acento: #5aa9ff;
+  --menu-borde: rgba(255, 255, 255, .10);
+  --menu-ancho: 248px;
   color-scheme: light;
 }
 
@@ -43,6 +53,9 @@
     --rf-bg: #14273f;
     --rf-text: #8cc4ff;
     --shadow: none;
+    --menu-bg: #0b1622;
+    --menu-bg-2: #112234;
+    --menu-borde: rgba(255, 255, 255, .07);
     color-scheme: dark;
   }
 }
@@ -66,6 +79,9 @@
   --rf-bg: #14273f;
   --rf-text: #8cc4ff;
   --shadow: none;
+  --menu-bg: #0b1622;
+  --menu-bg-2: #112234;
+  --menu-borde: rgba(255, 255, 255, .07);
   color-scheme: dark;
 }
 
@@ -87,27 +103,87 @@ h1 { font-size: 1.5rem; margin: 0 0 4px; }
 h2 { font-size: 1.05rem; margin: 0 0 12px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 h3 { font-size: .95rem; margin: 16px 0 8px; }
 
-/* Barra superior */
-.barra {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  flex-wrap: wrap;
-  padding: 10px 16px;
-  background: var(--surface);
-  border-bottom: 1px solid var(--border);
+/* Marca (logo + nombre) */
+.marca { display: flex; align-items: center; gap: 10px; color: var(--menu-text-fuerte); text-decoration: none; font-weight: 700; font-size: 1.05rem; letter-spacing: .01em; }
+.marca-logo {
+  display: grid; place-items: center; width: 34px; height: 34px; flex: none;
+  border-radius: 9px; background: linear-gradient(135deg, var(--menu-acento), #2f6fe0); color: #fff;
 }
-.marca { font-weight: 700; color: var(--text); text-decoration: none; display: flex; align-items: center; gap: 8px; }
-.barra nav { display: flex; gap: 4px; flex-wrap: wrap; }
-.barra nav a {
-  padding: 6px 10px; border-radius: 6px; color: var(--muted); text-decoration: none; font-weight: 500;
+.marca-logo svg { width: 20px; height: 20px; }
+.marca small { display: block; font-weight: 500; font-size: .72rem; color: var(--menu-text); letter-spacing: .04em; text-transform: uppercase; }
+
+/* Estructura con menú lateral */
+.app { min-height: 100vh; }
+.app.con-menu { display: grid; grid-template-columns: var(--menu-ancho) minmax(0, 1fr); }
+
+.menu-lateral {
+  position: sticky; top: 0; height: 100vh;
+  display: flex; flex-direction: column; gap: 6px;
+  padding: 18px 14px;
+  background: linear-gradient(180deg, var(--menu-bg) 0%, var(--menu-bg-2) 100%);
+  color: var(--menu-text);
+  border-right: 1px solid var(--menu-borde);
 }
-.barra nav a:hover { background: var(--surface-2); color: var(--text); }
-.barra nav a[aria-current="page"] { background: var(--surface-2); color: var(--text); }
-.sesion { margin-left: auto; display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: .85rem; flex-wrap: wrap; }
+.menu-lateral .marca { padding: 2px 6px 16px; border-bottom: 1px solid var(--menu-borde); margin-bottom: 10px; }
+.menu-titulo { margin: 10px 10px 4px; font-size: .7rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--menu-text); opacity: .7; }
+.menu-lateral nav { display: flex; flex-direction: column; gap: 2px; }
+.menu-lateral nav a {
+  position: relative; display: flex; align-items: center; gap: 12px;
+  padding: 9px 12px; border-radius: 8px;
+  color: var(--menu-text); text-decoration: none; font-weight: 500;
+  transition: background-color .15s, color .15s;
+}
+.menu-lateral nav a svg { width: 19px; height: 19px; flex: none; opacity: .85; }
+.menu-lateral nav a:hover { background: var(--menu-hover); color: var(--menu-text-fuerte); }
+.menu-lateral nav a[aria-current="page"] { background: var(--menu-activo); color: var(--menu-text-fuerte); }
+.menu-lateral nav a[aria-current="page"]::before {
+  content: ""; position: absolute; left: -14px; top: 8px; bottom: 8px; width: 4px;
+  border-radius: 0 4px 4px 0; background: var(--menu-acento);
+}
+.menu-lateral nav a:focus-visible { outline: 2px solid var(--menu-acento); outline-offset: 2px; }
+
+.menu-usuario { margin-top: auto; padding-top: 14px; border-top: 1px solid var(--menu-borde); }
+.menu-usuario .persona { display: flex; align-items: center; gap: 10px; padding: 0 6px 12px; }
+.avatar {
+  display: grid; place-items: center; width: 36px; height: 36px; flex: none;
+  border-radius: 50%; background: var(--menu-activo); color: var(--menu-text-fuerte); font-weight: 700; font-size: .85rem;
+}
+.menu-usuario .nombre { color: var(--menu-text-fuerte); font-weight: 600; font-size: .88rem; line-height: 1.25; }
+.menu-usuario .detalle { font-size: .76rem; color: var(--menu-text); }
+.btn-salir {
+  display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%;
+  padding: 8px 12px; border-radius: 8px; border: 1px solid var(--menu-borde);
+  background: transparent; color: var(--menu-text); font: inherit; font-weight: 500; cursor: pointer;
+}
+.btn-salir svg { width: 17px; height: 17px; }
+.btn-salir:hover { background: var(--menu-hover); color: var(--menu-text-fuerte); }
+
+/* Barra superior solo en pantallas angostas (abre el menú) */
+.barra-movil {
+  display: none; align-items: center; gap: 12px; padding: 10px 16px;
+  background: var(--menu-bg); color: var(--menu-text-fuerte);
+}
+.btn-menu {
+  display: grid; place-items: center; width: 38px; height: 38px; border-radius: 8px;
+  border: 1px solid var(--menu-borde); background: transparent; color: inherit; cursor: pointer;
+}
+.btn-menu svg { width: 20px; height: 20px; }
+.velo { display: none; }
+
+@media (max-width: 900px) {
+  .app.con-menu { display: block; }
+  .barra-movil { display: flex; position: sticky; top: 0; z-index: 20; }
+  .menu-lateral {
+    position: fixed; z-index: 40; left: 0; top: 0; width: min(var(--menu-ancho), 82vw);
+    transform: translateX(-100%); transition: transform .2s ease;
+  }
+  .menu-abierto .menu-lateral { transform: none; box-shadow: 0 0 40px rgba(0, 0, 0, .35); }
+  .menu-abierto .velo { display: block; position: fixed; inset: 0; z-index: 30; background: rgba(10, 18, 28, .45); }
+}
 
 /* Contenedor */
-.contenedor { max-width: 1240px; margin: 0 auto; padding: 20px 16px 48px; }
+.contenedor { width: 100%; max-width: 1240px; margin: 0 auto; padding: 24px 24px 48px; }
+@media (max-width: 600px) { .contenedor { padding: 16px 16px 40px; } }
 .titulo-pagina { margin-bottom: 16px; }
 .sub { margin: 0; color: var(--muted); }
 
@@ -128,6 +204,16 @@ h3 { font-size: .95rem; margin: 16px 0 8px; }
   padding: 16px;
   margin-bottom: 16px;
   min-width: 0;
+}
+
+/* Cabecera de cada sección de la pantalla de venta: franja de color a todo el ancho de la tarjeta */
+.grid-venta .tarjeta > h2 {
+  margin: -16px -16px 14px;
+  padding: 10px 16px;
+  background: var(--rf-bg);
+  color: var(--rf-text);
+  border-bottom: 1px solid var(--border);
+  border-radius: var(--radius) var(--radius) 0 0;
 }
 
 /* Rejilla de la pantalla de venta */
@@ -263,7 +349,66 @@ input[disabled], select[disabled] { background: var(--surface-2); color: var(--m
 .marca-ok { color: var(--ok); font-weight: 700; }
 
 /* Login */
-.login-caja { max-width: 440px; margin: 24px auto 0; }
+.acceso { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); min-height: 100vh; }
+
+/* Panel de marca */
+.acceso-marca {
+  position: relative; overflow: hidden;
+  display: flex; flex-direction: column; justify-content: space-between; gap: 32px;
+  padding: 40px 48px;
+  background: linear-gradient(150deg, var(--menu-bg) 0%, var(--menu-bg-2) 60%, #1f5287 100%);
+  color: var(--menu-text);
+}
+.acceso-marca::after {
+  /* Círculos decorativos de fondo */
+  content: ""; position: absolute; right: -140px; bottom: -140px; width: 420px; height: 420px; border-radius: 50%;
+  border: 60px solid rgba(255, 255, 255, .04); pointer-events: none;
+}
+.acceso-marca .marca { font-size: 1.15rem; }
+.acceso-mensaje { max-width: 440px; }
+.acceso-mensaje h1 { color: var(--menu-text-fuerte); font-size: 2rem; line-height: 1.2; margin-bottom: 12px; }
+.acceso-mensaje p { margin: 0 0 24px; font-size: 1rem; }
+.acceso-beneficios { list-style: none; margin: 0; padding: 0; display: grid; gap: 14px; }
+.acceso-beneficios li { display: flex; gap: 12px; align-items: flex-start; }
+.acceso-beneficios li svg { width: 20px; height: 20px; flex: none; margin-top: 2px; color: var(--menu-acento); }
+.acceso-beneficios b { display: block; color: var(--menu-text-fuerte); font-weight: 600; }
+.acceso-beneficios span { font-size: .88rem; }
+.acceso-pie { font-size: .78rem; opacity: .7; }
+
+/* Panel del formulario */
+.acceso-form { display: grid; place-items: center; padding: 40px 24px; background: var(--bg); }
+.acceso-caja { width: 100%; max-width: 400px; }
+.acceso-caja .marca { display: none; color: var(--text); margin-bottom: 28px; }
+.acceso-caja h2 { display: block; font-size: 1.6rem; margin: 0 0 6px; }
+.acceso-caja .sub { margin-bottom: 28px; }
+.acceso-caja form { display: grid; gap: 6px; }
+.acceso-caja label { font-size: .85rem; color: var(--text); }
+
+.campo-icono { position: relative; }
+.campo-icono > svg {
+  position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+  width: 18px; height: 18px; color: var(--muted); pointer-events: none;
+}
+.campo-icono input { padding: 12px 44px 12px 40px; font-size: 1rem; border-radius: 9px; background: var(--surface); }
+.campo-icono input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent); }
+.ver-clave {
+  position: absolute; right: 6px; top: 50%; transform: translateY(-50%);
+  display: grid; place-items: center; width: 34px; height: 34px; border: none; border-radius: 7px;
+  background: transparent; color: var(--muted); cursor: pointer;
+}
+.ver-clave:hover { background: var(--surface-2); color: var(--text); }
+.ver-clave svg { width: 18px; height: 18px; }
+.acceso-caja .btn-bloque { margin-top: 14px; padding: 13px; border-radius: 9px; font-weight: 600; }
+.acceso-ayuda { margin-top: 24px; font-size: .82rem; color: var(--muted); text-align: center; }
+.acceso-alerta { display: flex; gap: 10px; align-items: flex-start; margin: 0 0 18px; }
+.acceso-alerta svg { width: 18px; height: 18px; flex: none; margin-top: 1px; }
+.acceso-alerta ul { margin: 0; padding: 0; list-style: none; }
+
+@media (max-width: 900px) {
+  .acceso { grid-template-columns: 1fr; }
+  .acceso-marca { display: none; }
+  .acceso-caja .marca { display: flex; }
+}
 
 /* Validación de formularios Razor */
 .error-campo { display: block; margin-top: 4px; font-size: .8rem; color: var(--err); }
@@ -288,7 +433,25 @@ input[disabled], select[disabled] { background: var(--surface-2); color: var(--m
 .pestana[aria-selected="true"] { color: var(--accent); border-bottom-color: var(--accent); }
 
 @media print {
-  .barra, .acciones, .no-imprimir { display: none !important; }
+  .menu-lateral, .barra-movil, .velo, .acciones, .no-imprimir { display: none !important; }
+  .app.con-menu { display: block; }
   body { background: #fff; color: #000; }
   .tarjeta { box-shadow: none; border: none; }
 }
+
+/* Ventana modal (<dialog>): selección de cliente */
+.dialogo {
+  width: min(760px, calc(100vw - 32px));
+  max-height: calc(100vh - 64px);
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, .25);
+}
+.dialogo::backdrop { background: rgba(15, 20, 25, .45); }
+.dialogo[open] { display: flex; flex-direction: column; gap: 10px; }
+.dialogo-cab { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.dialogo-cab h2 { margin: 0 0 2px; }
+.dialogo-cuerpo { overflow: auto; }

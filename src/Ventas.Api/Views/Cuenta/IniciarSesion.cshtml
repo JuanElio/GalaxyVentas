@@ -1,30 +1,46 @@
 @model IniciarSesionViewModel
 @{
     ViewData["Title"] = "Iniciar sesión";
+    Layout = "_LayoutAcceso";
+    var errores = ViewData.ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).Distinct().ToList();
 }
 
-<div class="login-caja">
-    <section class="tarjeta" aria-labelledby="h-login">
-        <h1 id="h-login">Iniciar sesión</h1>
-        <p class="sub">Sistema de ventas del punto de venta</p>
+<div class="acceso-caja">
+    @* En pantallas angostas el panel de marca se oculta: la marca aparece sobre el formulario *@
+    <div class="marca">
+        <span class="marca-logo">@Iconos.Svg("logo")</span>
+        <span>GalaxyVentas</span>
+    </div>
 
-        <form asp-action="IniciarSesion" method="post" autocomplete="off" novalidate style="margin-top:16px">
-            <input type="hidden" asp-for="ReturnUrl">
-            <div class="campo">
-                <label asp-for="Login">Usuario</label>
-                <input asp-for="Login" maxlength="16" autocomplete="username" autofocus>
-                <span asp-validation-for="Login" class="error-campo"></span>
-            </div>
-            <div class="campo">
-                <label asp-for="Clave">Contraseña</label>
-                <input asp-for="Clave" type="password" maxlength="16" autocomplete="current-password" value="">
-                <span asp-validation-for="Clave" class="error-campo"></span>
-            </div>
-            <button class="btn btn-bloque" type="submit">Ingresar</button>
-            @if (ViewData.ModelState[string.Empty]?.Errors.Count > 0)
-            {
-                <div asp-validation-summary="ModelOnly" class="aviso aviso-err" role="alert"></div>
-            }
-        </form>
-    </section>
+    <h2 id="h-login">Bienvenido</h2>
+    <p class="sub">Ingrese con su usuario y contraseña para continuar.</p>
+
+    @if (errores.Count > 0)
+    {
+        <div class="aviso aviso-err acceso-alerta" role="alert">
+            @Iconos.Svg("alerta")
+            <ul>@foreach (var error in errores) { <li>@error</li> }</ul>
+        </div>
+    }
+
+    <form asp-action="IniciarSesion" method="post" autocomplete="off" novalidate aria-labelledby="h-login">
+        <input type="hidden" asp-for="ReturnUrl">
+
+        <label asp-for="Login">Usuario</label>
+        <div class="campo-icono">
+            @Iconos.Svg("usuario")
+            <input asp-for="Login" maxlength="16" autocomplete="username" placeholder="Su usuario" autofocus>
+        </div>
+
+        <label asp-for="Clave" style="margin-top:10px">Contraseña</label>
+        <div class="campo-icono">
+            @Iconos.Svg("candado")
+            <input asp-for="Clave" type="password" maxlength="16" autocomplete="current-password" placeholder="Su contraseña" value="">
+            <button class="ver-clave" type="button" data-ver-clave="#Clave" aria-label="Mostrar contraseña" aria-pressed="false">@Iconos.Svg("ojo")</button>
+        </div>
+
+        <button class="btn btn-bloque" type="submit">Ingresar</button>
+    </form>
+
+    <p class="acceso-ayuda">¿Problemas para ingresar? Comuníquese con el administrador del sistema.</p>
 </div>

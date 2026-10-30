@@ -98,7 +98,7 @@ public class VentaTests
     [Fact]
     public void Crear_SinCliente_LanzaExcepcionDeDominio()
     {
-        var accion = () => new Venta("001", 0, "V01", "01", "01", "ALM01", "PEN", "CON", "B", DateTime.Now);
+        var accion = () => new Venta("001", 0, "V01", "01", "01", "ALM01", "PEN", "C00", "B", DateTime.Now);
 
         accion.Should().Throw<DominioException>().WithMessage("El cliente es obligatorio.");
     }

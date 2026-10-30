@@ -1,7 +1,9 @@
 using FluentValidation;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Ventas.Application.Comprobantes;
 using Ventas.Application.Maestros;
+using Ventas.Application.Reportes;
 using Ventas.Application.Seguridad;
 using Ventas.Application.Ventas;
 
@@ -20,6 +22,8 @@ public static class RegistroServicios
         services.AddScoped<CatalogoService>();
         services.AddScoped<VentaService>();
         services.AddScoped<RegistroVentaService>();
+        services.AddScoped<ConsultaVentasService>();
+        services.AddScoped<ReporteVentasService>();
 
         return services;
     }

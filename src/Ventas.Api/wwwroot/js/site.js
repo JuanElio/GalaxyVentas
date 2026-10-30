@@ -18,6 +18,26 @@
         }
     });
 
+    // Menú lateral en pantallas angostas: se abre con el botón y se cierra con Esc, el velo o al elegir una opción
+    const alternarMenu = (abrir) => {
+        $('body').toggleClass('menu-abierto', abrir);
+        $('[data-menu-abrir]').attr('aria-expanded', String(abrir));
+    };
+    $('[data-menu-abrir]').on('click', () => alternarMenu(true));
+    $('[data-menu-cerrar], .menu-lateral nav a').on('click', () => alternarMenu(false));
+    $(document).on('keydown', (e) => {
+        if (e.key === 'Escape' && $('body').hasClass('menu-abierto')) alternarMenu(false);
+    });
+
+    // Mostrar u ocultar la contraseña
+    $('[data-ver-clave]').on('click', (e) => {
+        const $boton = $(e.currentTarget);
+        const $campo = $($boton.data('ver-clave'));
+        const mostrar = $campo.attr('type') === 'password';
+        $campo.attr('type', mostrar ? 'text' : 'password').trigger('focus');
+        $boton.attr({ 'aria-pressed': String(mostrar), 'aria-label': mostrar ? 'Ocultar contraseña' : 'Mostrar contraseña' });
+    });
+
     const formato = decimales => new Intl.NumberFormat('es-PE', {
         minimumFractionDigits: decimales,
         maximumFractionDigits: decimales,
