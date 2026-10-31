@@ -17,7 +17,7 @@ public class VentasTests(AplicacionPrueba app) : IClassFixture<AplicacionPrueba>
         var html = await cliente.GetStringAsync("/Ventas/Registrar");
 
         Assert.Contains("001 · SEDE CENTRAL", html);
-        Assert.Contains("01 · Avisos Lima Contado", html);
+        Assert.Contains("30 · Precio Especial", html);
         Assert.Contains("Soles (SOL)", html);
         Assert.Contains("ALM01", html);
         Assert.Contains("Operador vendedor (vendedor)", html);

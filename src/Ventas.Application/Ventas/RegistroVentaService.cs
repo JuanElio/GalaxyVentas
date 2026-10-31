@@ -64,7 +64,7 @@ public sealed class RegistroVentaService(
             await stock.BloquearAsync(codigoPuntoVenta, codigos, ct);
 
             var fecha = reloj.GetLocalNow().DateTime;
-            var encontrados = (await articulos.ObtenerConTarifasVigentesAsync(ParametrosVenta.Canal, codigos, fecha, ct))
+            var encontrados = (await articulos.ObtenerConTarifasVigentesAsync(ParametrosVenta.TipoOrden, ParametrosVenta.Canal, codigos, fecha, ct))
                 .ToDictionary(a => a.Articulo.Codigo, StringComparer.OrdinalIgnoreCase);
             var stockActual = await stock.ObtenerStockAsync(codigoPuntoVenta, codigos, ct);
 
@@ -111,7 +111,7 @@ public sealed class RegistroVentaService(
     {
         var codigo = linea.CodigoArticulo.Trim();
         if (!encontrados.TryGetValue(codigo, out var articulo))
-            throw new DominioException($"El artículo {codigo} no existe, está inactivo o no tiene tarifa vigente.");
+            throw new DominioException($"El artículo {codigo} no existe, está inactivo o no tiene categoría, tarifa o IGV vigente.");
 
         var tarifa = Tarifa.Elegir(articulo.Tarifas, linea.Cantidad, fecha)
             ?? throw new DominioException($"No hay tarifa vigente para vender {linea.Cantidad:0} unidades de {codigo}.");
@@ -121,7 +121,7 @@ public sealed class RegistroVentaService(
             throw new DominioException(
                 $"Stock insuficiente para {codigo}: disponible {disponible:0.####}, solicitado {linea.Cantidad:0}.");
 
-        venta.AgregarLinea(codigo, articulo.Articulo.UnidadMedida?.Trim(), linea.Cantidad, tarifa.Precio!.Value);
+        venta.AgregarLinea(codigo, articulo.Articulo.UnidadMedida?.Trim(), linea.Cantidad, tarifa.Precio!.Value, articulo.TasaIgv);
     }
 
     private static ClienteComprobante DatosCliente(Cliente cliente) => new(

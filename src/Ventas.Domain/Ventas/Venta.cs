@@ -85,7 +85,8 @@ public class Venta
 
     public IReadOnlyList<DetalleVenta> Detalles => _detalles;
 
-    public DetalleVenta AgregarLinea(string codigoArticulo, string? unidadMedida, decimal cantidad, decimal tarifa)
+    public DetalleVenta AgregarLinea(string codigoArticulo, string? unidadMedida, decimal cantidad, decimal tarifa,
+        decimal tasaIgv = Importes.TasaIgv)
     {
         if (Situacion != SituacionVenta.Registrada)
             throw new DominioException("No se pueden agregar líneas a una venta con comprobante emitido.");
@@ -94,7 +95,7 @@ public class Venta
         if (_detalles.Any(d => string.Equals(d.CodigoArticulo, codigo, StringComparison.OrdinalIgnoreCase)))
             throw new DominioException($"El artículo {codigo} ya está en otra línea de la venta.");
 
-        var detalle = new DetalleVenta(_detalles.Count + 1, codigo, unidadMedida, cantidad, tarifa);
+        var detalle = new DetalleVenta(_detalles.Count + 1, codigo, unidadMedida, cantidad, tarifa, tasaIgv);
         _detalles.Add(detalle);
         RecalcularTotales();
         return detalle;

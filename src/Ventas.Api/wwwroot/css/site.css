@@ -206,8 +206,9 @@ h3 { font-size: .95rem; margin: 16px 0 8px; }
   min-width: 0;
 }
 
-/* Cabecera de cada sección de la pantalla de venta: franja de color a todo el ancho de la tarjeta */
-.grid-venta .tarjeta > h2 {
+/* Cabecera de cada sección (venta, consultas, reporte): franja de color a todo el ancho de la tarjeta */
+.grid-venta .tarjeta > h2,
+.tarjeta-seccion > h2 {
   margin: -16px -16px 14px;
   padding: 10px 16px;
   background: var(--rf-bg);
@@ -279,6 +280,14 @@ input[disabled], select[disabled] { background: var(--surface-2); color: var(--m
 .tabla input[type="number"] { width: 80px; text-align: right; padding: 4px 6px; }
 .tabla tbody tr:hover { background: var(--surface-2); }
 .vacio { color: var(--muted); text-align: center; padding: 20px 8px !important; }
+
+/* Encabezado de cada categoría en la lista de artículos */
+.tabla .fila-grupo th {
+  background: var(--surface-2); color: var(--text);
+  font-size: .8rem; text-transform: none; letter-spacing: 0; padding-top: 9px;
+}
+.tabla tbody tr.fila-grupo:hover { background: none; }
+.filtros-art > .campo:first-child { flex: 0 1 200px; }
 .codigo { font-family: ui-monospace, "Cascadia Code", Consolas, monospace; font-size: .82rem; }
 
 .chip {
@@ -398,6 +407,14 @@ input[disabled], select[disabled] { background: var(--surface-2); color: var(--m
 }
 .ver-clave:hover { background: var(--surface-2); color: var(--text); }
 .ver-clave svg { width: 18px; height: 18px; }
+
+/* Mis datos: datos del usuario y cambio de contraseña */
+.grid-mis-datos { display: grid; grid-template-columns: 1fr; gap: 0 16px; }
+@media (min-width: 900px) { .grid-mis-datos { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: start; } }
+.campo-clave { position: relative; }
+.campo-clave input { padding-right: 44px; }
+.campo small.sub { display: block; margin-top: 4px; font-size: .78rem; }
+.nota { margin-top: 14px; font-size: .82rem; }
 .acceso-caja .btn-bloque { margin-top: 14px; padding: 13px; border-radius: 9px; font-weight: 600; }
 .acceso-ayuda { margin-top: 24px; font-size: .82rem; color: var(--muted); text-align: center; }
 .acceso-alerta { display: flex; gap: 10px; align-items: flex-start; margin: 0 0 18px; }
@@ -437,6 +454,7 @@ input[disabled], select[disabled] { background: var(--surface-2); color: var(--m
   .app.con-menu { display: block; }
   body { background: #fff; color: #000; }
   .tarjeta { box-shadow: none; border: none; }
+  .tarjeta-seccion > h2 { margin: 0 0 14px; padding: 0; background: none; border: none; }
 }
 
 /* Ventana modal (<dialog>): selección de cliente */

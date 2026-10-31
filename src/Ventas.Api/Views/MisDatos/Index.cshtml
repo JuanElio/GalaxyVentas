@@ -1,0 +1,80 @@
+@model MisDatosViewModel
+@using Ventas.Application.Seguridad
+@{
+    ViewData["Title"] = "Mis datos";
+    var d = Model.Datos!;
+    var mensaje = TempData["Mensaje"] as string;
+    var erroresGenerales = ViewData.ModelState[string.Empty]?.Errors.Select(e => e.ErrorMessage).ToList() ?? [];
+}
+
+<div class="titulo-pagina">
+    <h1>Mis datos</h1>
+    <p class="sub">Sus datos de usuario y el cambio de su contraseña</p>
+</div>
+
+@if (mensaje is not null)
+{
+    <div class="aviso aviso-ok" role="status">@mensaje</div>
+}
+
+<div class="grid-mis-datos">
+    <section class="tarjeta tarjeta-seccion" aria-labelledby="h-datos">
+        <h2 id="h-datos">Datos del usuario</h2>
+        <dl class="ficha">
+            <dt>Usuario</dt><dd class="codigo">@d.Login</dd>
+            <dt>Nombre</dt><dd><b>@d.Nombre</b></dd>
+            <dt>N.º de documento</dt><dd>@(d.NumeroDocumento ?? "—")</dd>
+            <dt>Correo</dt><dd>@(d.Email ?? "—")</dd>
+            <dt>Teléfono</dt><dd>@(d.Telefono ?? "—")</dd>
+            <dt>Punto de venta</dt><dd>@d.CodigoPuntoVenta@(d.PuntoVenta is null ? null : $" · {d.PuntoVenta}")</dd>
+            <dt>Vigencia del usuario</dt><dd>@Formato.Fecha(d.InicioVigencia) al @Formato.Fecha(d.FinVigencia)</dd>
+            <dt>Vencimiento de la contraseña</dt><dd>@(d.FechaExpiraClave is { } expira ? Formato.Fecha(expira) : "No vence")</dd>
+        </dl>
+        <p class="sub nota">Para corregir estos datos, comuníquese con el administrador del sistema.</p>
+    </section>
+
+    <section class="tarjeta tarjeta-seccion" aria-labelledby="h-clave">
+        <h2 id="h-clave">Cambiar contraseña</h2>
+
+        @if (erroresGenerales.Count > 0)
+        {
+            <div class="aviso aviso-err" role="alert">@string.Join(" ", erroresGenerales)</div>
+        }
+
+        @* Las contraseñas nunca se devuelven a la vista: los campos siempre se muestran vacíos *@
+        <form asp-action="CambiarClave" method="post" autocomplete="off" novalidate>
+            <input type="text" name="usuario" value="@d.Login" autocomplete="username" hidden>
+
+            <div class="campo">
+                <label asp-for="ClaveActual">Contraseña actual</label>
+                <div class="campo-clave">
+                    <input asp-for="ClaveActual" type="password" maxlength="16" autocomplete="current-password" value="">
+                    <button class="ver-clave" type="button" data-ver-clave="#ClaveActual" aria-label="Mostrar contraseña" aria-pressed="false">@Iconos.Svg("ojo")</button>
+                </div>
+                <span asp-validation-for="ClaveActual" class="error-campo"></span>
+            </div>
+
+            <div class="campo">
+                <label asp-for="ClaveNueva">Nueva contraseña</label>
+                <div class="campo-clave">
+                    <input asp-for="ClaveNueva" type="password" maxlength="16" autocomplete="new-password" value=""
+                           aria-describedby="ayuda-clave">
+                    <button class="ver-clave" type="button" data-ver-clave="#ClaveNueva" aria-label="Mostrar contraseña" aria-pressed="false">@Iconos.Svg("ojo")</button>
+                </div>
+                <span asp-validation-for="ClaveNueva" class="error-campo"></span>
+                <small id="ayuda-clave" class="sub">Entre @CambiarClaveValidator.LongitudMinima y @CambiarClaveValidator.LongitudMaxima caracteres, con al menos una letra y un número, sin espacios.</small>
+            </div>
+
+            <div class="campo">
+                <label asp-for="ConfirmacionClave">Confirmar nueva contraseña</label>
+                <div class="campo-clave">
+                    <input asp-for="ConfirmacionClave" type="password" maxlength="16" autocomplete="new-password" value="">
+                    <button class="ver-clave" type="button" data-ver-clave="#ConfirmacionClave" aria-label="Mostrar contraseña" aria-pressed="false">@Iconos.Svg("ojo")</button>
+                </div>
+                <span asp-validation-for="ConfirmacionClave" class="error-campo"></span>
+            </div>
+
+            <button class="btn" type="submit">Cambiar contraseña</button>
+        </form>
+    </section>
+</div>

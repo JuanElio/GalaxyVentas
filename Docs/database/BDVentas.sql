@@ -1067,3 +1067,19 @@ REFERENCES [dbo].[SGP_ARTICULO] ([vchCodArticulo])
 GO
 ALTER TABLE [dbo].[SGP_TIPO_ORDEN_ARTICULO] CHECK CONSTRAINT [FK_SGP_TIPO_ORDEN_ARTICULO]
 GO
+CREATE TABLE [dbo].[SGP_DETALLE_IVA](
+	[vchCodIva] [varchar](9) NOT NULL,
+	[dtmFechaVigencia] [datetime] NOT NULL,
+	[numValorIGV] [numeric](15, 4) NULL,
+	[chrSituacionRegistro] [char](1) NULL,
+	[vchCreador] [varchar](16) NOT NULL,
+	[dtmFechaCreacion] [datetime] NOT NULL,
+	[vchModificador] [varchar](16) NULL,
+	[dtmFechaModificacion] [datetime] NULL,
+PRIMARY KEY CLUSTERED 
+(
+	[vchCodIva] ASC,
+	[dtmFechaVigencia] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, FILLFACTOR = 80, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+) ON [PRIMARY]
+GO

@@ -51,7 +51,7 @@ public sealed class VentaService(
 
         var fecha = reloj.GetLocalNow().DateTime;
         var codigos = datos.Lineas.Select(l => l.CodigoArticulo.Trim()).ToList();
-        var encontrados = (await articulos.ObtenerConTarifasVigentesAsync(ParametrosVenta.Canal, codigos, fecha, ct))
+        var encontrados = (await articulos.ObtenerConTarifasVigentesAsync(ParametrosVenta.TipoOrden, ParametrosVenta.Canal, codigos, fecha, ct))
             .ToDictionary(a => a.Articulo.Codigo, StringComparer.OrdinalIgnoreCase);
         var stockPorArticulo = await stock.ObtenerStockAsync(usuarioActual.CodigoPuntoVenta, codigos, ct);
 
@@ -82,7 +82,7 @@ public sealed class VentaService(
 
         if (!encontrados.TryGetValue(codigo, out var articulo))
             return SinPrecio(numeroLinea, codigo, codigo, null, linea.Cantidad, disponible,
-                $"El artículo {codigo} no existe, está inactivo o no tiene tarifa vigente.");
+                $"El artículo {codigo} no existe, está inactivo o no tiene categoría, tarifa o IGV vigente.");
 
         var descripcion = articulo.Articulo.Descripcion?.Trim() ?? codigo;
         var unidad = articulo.Articulo.UnidadMedida?.Trim();
@@ -91,7 +91,7 @@ public sealed class VentaService(
             return SinPrecio(numeroLinea, codigo, descripcion, unidad, linea.Cantidad, disponible,
                 $"No hay tarifa vigente para vender {linea.Cantidad:0} unidades de {codigo}.");
 
-        var importes = Importes.CalcularLinea(linea.Cantidad, tarifa.Precio!.Value);
+        var importes = Importes.CalcularLinea(linea.Cantidad, tarifa.Precio!.Value, articulo.TasaIgv);
         var observacion = linea.Cantidad > disponible
             ? $"Stock insuficiente: disponible {disponible:0.####}, solicitado {linea.Cantidad:0}."
             : null;

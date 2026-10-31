@@ -35,6 +35,7 @@ public static class RegistroServicios
         services.AddScoped<IUnitOfWork, UnidadTrabajo>();
         services.AddScoped<IUsuarioRepository, UsuarioRepository>();
         services.AddScoped<IVerificadorClave, VerificadorClave>();
+        services.AddScoped<ICambioClave, VerificadorClave>();
         services.AddScoped<IClienteRepository, ClienteRepository>();
         services.AddScoped<IArticuloRepository, ArticuloRepository>();
         services.AddScoped<IPuntoVentaRepository, PuntoVentaRepository>();

@@ -10,7 +10,7 @@
     <p class="sub">Ventas del punto de venta <b>@Model.PuntoVenta</b></p>
 </div>
 
-<section class="tarjeta no-imprimir" aria-labelledby="h-filtros">
+<section class="tarjeta tarjeta-seccion no-imprimir" aria-labelledby="h-filtros">
     <h2 id="h-filtros">Filtros</h2>
     <form method="get" asp-action="Ventas" class="fila-form" autocomplete="off" novalidate>
         <div class="campo">
@@ -63,7 +63,7 @@
 
 @if (r is not null)
 {
-    <section class="tarjeta" aria-labelledby="h-res">
+    <section class="tarjeta tarjeta-seccion" aria-labelledby="h-res">
         <h2 id="h-res">Resultado <span class="sub" style="font-weight:400;font-size:.88rem">del @Formato.Fecha(r.Desde) al @Formato.Fecha(r.Hasta)</span></h2>
 
         <div class="totales-reporte">

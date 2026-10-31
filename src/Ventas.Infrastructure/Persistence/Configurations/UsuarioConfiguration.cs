@@ -6,7 +6,7 @@ namespace Ventas.Infrastructure.Persistence.Configurations;
 
 internal sealed class UsuarioConfiguration : IEntityTypeConfiguration<Usuario>
 {
-    /// <summary>Propiedad de sombra con la contraseña; solo la lee <see cref="Seguridad.VerificadorClave"/>.</summary>
+    /// <summary>Propiedad de sombra con la contraseña; solo la lee y la cambia <see cref="Seguridad.VerificadorClave"/>.</summary>
     public const string Clave = nameof(Clave);
 
     public void Configure(EntityTypeBuilder<Usuario> builder)
@@ -22,6 +22,9 @@ internal sealed class UsuarioConfiguration : IEntityTypeConfiguration<Usuario>
         builder.Property(u => u.InicioVigencia).HasColumnName("dtmFechaInicioAct").HasColumnType("datetime");
         builder.Property(u => u.FinVigencia).HasColumnName("dtmFechaFinAct").HasColumnType("datetime");
         builder.Property(u => u.FechaExpiraClave).HasColumnName("dtmFechaExpiraClave").HasColumnType("datetime");
+        builder.Property(u => u.NumeroDocumento).HasColumnName("vchNumeroDocumento").HasMaxLength(8).IsUnicode();
+        builder.Property(u => u.Email).HasColumnName("vchEmail").HasMaxLength(100).IsUnicode(false);
+        builder.Property(u => u.Telefono).HasColumnName("vchTelefono").HasMaxLength(20).IsUnicode(false);
         builder.Ignore(u => u.TienePuntoVenta);
 
         builder.Property<string>(Clave).HasColumnName("vchPassword").HasMaxLength(16).IsUnicode(false);

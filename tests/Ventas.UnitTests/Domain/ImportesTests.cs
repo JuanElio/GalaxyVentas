@@ -28,6 +28,22 @@ public class ImportesTests
     }
 
     [Fact]
+    public void CalcularLinea_ArticuloExonerado_SinIgv()
+    {
+        var linea = Importes.CalcularLinea(2, 59.0000m, tasaIgv: 0m);
+
+        linea.Should().Be(new ImportesLinea(MontoBruto: 118.0000m, SubTotal: 118.0000m, ValorVenta: 118.0000m, Igv: 0m));
+    }
+
+    [Fact]
+    public void DesglosarIgv_TasaNegativa_LanzaExcepcionDeDominio()
+    {
+        var accion = () => Importes.DesglosarIgv(10m, -0.18m);
+
+        accion.Should().Throw<DominioException>();
+    }
+
+    [Fact]
     public void Totalizar_SumaConLaConvencionDeReferencia()
     {
         var totales = Importes.Totalizar([(118.0000m, 18.0000m), (10.0000m, 1.5254m)]);

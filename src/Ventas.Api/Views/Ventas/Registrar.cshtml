@@ -85,9 +85,17 @@
 
         <section class="tarjeta" aria-labelledby="h-art">
             <h2 id="h-art">2. Artículos</h2>
-            <div class="campo">
-                <label for="buscar-art">Buscar por código o descripción</label>
-                <input id="buscar-art" placeholder="Ej.: anexo, 7043210060" autocomplete="off">
+            <div class="fila-form filtros-art">
+                <div class="campo">
+                    <label for="categoria-art">Categoría</label>
+                    <select id="categoria-art">
+                        <option value="">Todas</option>
+                    </select>
+                </div>
+                <div class="campo">
+                    <label for="buscar-art">Buscar por código o descripción</label>
+                    <input id="buscar-art" placeholder="Ej.: atlas, 2011110031" autocomplete="off">
+                </div>
             </div>
             <div class="tabla-scroll">
                 <table class="tabla">
@@ -97,13 +105,14 @@
                             <th>Descripción</th>
                             <th>Und.</th>
                             <th class="num">Precio (con IGV)</th>
+                            <th class="num">IGV</th>
                             <th class="num">Stock</th>
                             <th class="num">Cant.</th>
                             <th></th>
                         </tr>
                     </thead>
                     <tbody id="tbody-art">
-                        <tr><td colspan="7" class="vacio">Cargando artículos…</td></tr>
+                        <tr><td colspan="8" class="vacio">Cargando artículos…</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -121,7 +130,7 @@
                             <th class="num">Cant.</th>
                             <th class="num">Tarifa</th>
                             <th class="num">Valor venta</th>
-                            <th class="num">IGV 18%</th>
+                            <th class="num">IGV</th>
                             <th class="num">Subtotal (con IGV)</th>
                             <th></th>
                         </tr>
@@ -180,7 +189,7 @@
             <h2 id="h-res">Resumen</h2>
             <dl>
                 <dt>Op. gravada (base imponible)</dt><dd id="r-subtotal"></dd>
-                <dt>IGV (18%)</dt><dd id="r-igv"></dd>
+                <dt>IGV</dt><dd id="r-igv"></dd>
                 <dt class="total">Total a cobrar</dt><dd class="total" id="r-total"></dd>
                 <div class="separador"></div>
                 <dt>Medio de pago</dt><dd id="r-medio"></dd>

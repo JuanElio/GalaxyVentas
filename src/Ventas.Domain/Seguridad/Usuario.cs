@@ -15,7 +15,8 @@ public class Usuario
     }
 
     public Usuario(string login, string? nombre, string? codigoPuntoVenta, bool activo,
-        DateTime inicioVigencia, DateTime finVigencia, DateTime? fechaExpiraClave)
+        DateTime inicioVigencia, DateTime finVigencia, DateTime? fechaExpiraClave,
+        string? numeroDocumento = null, string? email = null, string? telefono = null)
     {
         Login = login;
         Nombre = nombre;
@@ -24,6 +25,9 @@ public class Usuario
         InicioVigencia = inicioVigencia;
         FinVigencia = finVigencia;
         FechaExpiraClave = fechaExpiraClave;
+        NumeroDocumento = numeroDocumento;
+        Email = email;
+        Telefono = telefono;
     }
 
     public int Id { get; private set; }
@@ -41,6 +45,12 @@ public class Usuario
     public DateTime FinVigencia { get; private set; }
 
     public DateTime? FechaExpiraClave { get; private set; }
+
+    public string? NumeroDocumento { get; private set; }
+
+    public string? Email { get; private set; }
+
+    public string? Telefono { get; private set; }
 
     public bool TienePuntoVenta => !string.IsNullOrWhiteSpace(CodigoPuntoVenta);
 

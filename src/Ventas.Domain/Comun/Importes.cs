@@ -1,10 +1,11 @@
 namespace Ventas.Domain.Comun;
 
 /// <summary>
-/// Reglas comunes de importes: tasa de IGV y redondeo a 4 decimales (RN-03, RN-05).
+/// Reglas comunes de importes: desglose del IGV y redondeo a 4 decimales (RN-03, RN-05).
 /// </summary>
 public static class Importes
 {
+    /// <summary>Tasa general de IGV; cada artículo usa la de su código de IVA (SGP_DETALLE_IVA).</summary>
     public const decimal TasaIgv = 0.18m;
 
     public const int Decimales = 4;
@@ -17,20 +18,23 @@ public static class Importes
     /// Desglosa el IGV de un importe que ya lo incluye (P-15): devuelve el valor de venta
     /// (base imponible) y el IGV, cuya suma es exactamente el importe recibido.
     /// </summary>
-    public static (decimal ValorVenta, decimal Igv) DesglosarIgv(decimal importeConIgv)
+    public static (decimal ValorVenta, decimal Igv) DesglosarIgv(decimal importeConIgv, decimal tasaIgv = TasaIgv)
     {
-        var valorVenta = Redondear(importeConIgv / (1 + TasaIgv));
+        if (tasaIgv < 0)
+            throw new DominioException("La tasa de IGV no puede ser negativa.");
+
+        var valorVenta = Redondear(importeConIgv / (1 + tasaIgv));
         return (valorVenta, importeConIgv - valorVenta);
     }
 
     /// <summary>
     /// Importes de una línea con tarifa que incluye IGV (RF-06): bruto y subtotal = cantidad × tarifa;
-    /// el IGV se desglosa del subtotal.
+    /// el IGV se desglosa del subtotal con la tasa del artículo (0 si está exonerado).
     /// </summary>
-    public static ImportesLinea CalcularLinea(decimal cantidad, decimal tarifa)
+    public static ImportesLinea CalcularLinea(decimal cantidad, decimal tarifa, decimal tasaIgv = TasaIgv)
     {
         var subTotal = Redondear(cantidad * tarifa);
-        var (valorVenta, igv) = DesglosarIgv(subTotal);
+        var (valorVenta, igv) = DesglosarIgv(subTotal, tasaIgv);
         return new ImportesLinea(subTotal, subTotal, valorVenta, igv);
     }
 

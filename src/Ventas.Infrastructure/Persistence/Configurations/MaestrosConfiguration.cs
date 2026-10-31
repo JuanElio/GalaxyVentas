@@ -42,6 +42,54 @@ internal sealed class ArticuloConfiguration : IEntityTypeConfiguration<Articulo>
         builder.Property(a => a.Codigo).HasColumnName("vchCodArticulo").HasMaxLength(16).IsUnicode(false);
         builder.Property(a => a.Descripcion).HasColumnName("vchDescripcion").HasMaxLength(64).IsUnicode(false);
         builder.Property(a => a.UnidadMedida).HasColumnName("vchUnidadMedida").HasMaxLength(3).IsUnicode(false);
+        builder.Property(a => a.CodigoIva).HasColumnName("vchCodIva").HasMaxLength(9).IsUnicode(false);
+        builder.MapearSituacionRegistro();
+        builder.MapearAuditoriaSgp();
+    }
+}
+
+internal sealed class CategoriaVentaConfiguration : IEntityTypeConfiguration<CategoriaVenta>
+{
+    public void Configure(EntityTypeBuilder<CategoriaVenta> builder)
+    {
+        // Sin columnas de auditoría; el estado está en vchestado ('A' = activo)
+        builder.ToTable("SGP_CATEGORIA_VENTA");
+        builder.HasKey(c => c.Codigo);
+
+        builder.Property(c => c.Codigo).HasColumnName("intCodCategoria").ValueGeneratedNever();
+        builder.Property(c => c.Descripcion).HasColumnName("vchDescripcion").HasMaxLength(50).IsUnicode(false);
+        builder.MapearSituacionRegistro("varchar(1)", "vchestado");
+    }
+}
+
+internal sealed class CategoriaArticuloConfiguration : IEntityTypeConfiguration<CategoriaArticulo>
+{
+    public void Configure(EntityTypeBuilder<CategoriaArticulo> builder)
+    {
+        // El canal se guarda con o sin espacio inicial (' 30' y '30'): se compara sin espacios
+        builder.ToTable("SGP_CATEGORIA_ARTICULO");
+        builder.HasKey(c => new { c.CodigoCategoria, c.CodigoArticulo, c.CodigoCanal });
+
+        builder.Property(c => c.CodigoCategoria).HasColumnName("intCodCategoria").ValueGeneratedNever();
+        builder.Property(c => c.CodigoArticulo).HasColumnName("vchCodArticulo").HasMaxLength(16).IsUnicode(false);
+        builder.Property(c => c.TipoOrden).HasColumnName("vchCodTipoOrden").HasMaxLength(3).IsUnicode(false);
+        builder.Property(c => c.CodigoCanal).HasColumnName("vchCodTarifaCanal").HasMaxLength(3).IsUnicode(false);
+        builder.MapearSituacionRegistro("varchar(1)", "vchestado");
+    }
+}
+
+internal sealed class DetalleIvaConfiguration : IEntityTypeConfiguration<DetalleIva>
+{
+    public void Configure(EntityTypeBuilder<DetalleIva> builder)
+    {
+        // vchCodIva se guarda con espacios a la izquierda ('      G01'): se compara sin espacios
+        builder.ToTable("SGP_DETALLE_IVA");
+        builder.HasKey(d => new { d.CodigoIva, d.FechaVigencia });
+
+        builder.Property(d => d.CodigoIva).HasColumnName("vchCodIva").HasMaxLength(9).IsUnicode(false);
+        builder.Property(d => d.FechaVigencia).HasColumnName("dtmFechaVigencia").HasColumnType("datetime");
+        builder.Property(d => d.Porcentaje).HasColumnName("numValorIGV").HasColumnType("numeric(15,4)");
+        builder.Ignore(d => d.Tasa);
         builder.MapearSituacionRegistro();
         builder.MapearAuditoriaSgp();
     }

@@ -12,6 +12,7 @@
 
 | Versión | Fecha | Cambios |
 |---|---|---|
+| 0.6 | 30/10/2026 | Los artículos se listan agrupados por categoría de venta (`SGP_CATEGORIA_ARTICULO` / `SGP_CATEGORIA_VENTA`), con la consulta de artículos por categoría del sistema actual como referencia (RF-01). El canal pasa a `30` y el tipo de orden a `V41`, porque ninguna categoría está asignada al canal `01` ni a `V01`. El IGV es el del código de IVA de cada artículo en `SGP_DETALLE_IVA` (p. ej. `E20` exonerado = 0 %, `G01` = 18 %) (RN-03, RF-06). |
 | 0.5 | 29/10/2026 | Se resuelven P-02 (contraseña en texto plano), P-09 (códigos de medio de pago; débito y crédito son medios distintos, se elimina RN-22), P-10 (`intEstado = 1`), P-13 (primer almacén activo del punto de venta), P-14 (serie `F`/`B`), P-15 (la tarifa incluye IGV: cambia RF-06 y RN-04) y el canal (fijo `01`). El stock se calcula sin canal (RN-09, RF-09). Serie: los puntos de venta se guardan como `' 001'` (RF-11). Se resuelven P-06 (escala de tarifa) y P-20 (códigos de documento y persona); moneda `SOL`. |
 | 0.4 | 29/10/2026 | Los procedimientos almacenados de `StoreProcedure.sql` pasan a ser la referencia de cómo se graban los datos (sección 1). Se ajustan a ellos: cálculo de importes (RF-05, RN-04: el subtotal de la línea incluye IGV) |
 | 0.3 | 29/10/2026 | Se exige el token de acceso en cada llamada (`Authorization: Bearer <token>`): RF-20 devuelve el token; RF-18 agrega criterios de aceptación (401 sin token, token inválido o expirado, o usuario no vigente. Tarjeta de crédito y de débito se registran como un solo medio "tarjeta" con tipo obligatorio. |
@@ -76,13 +77,14 @@ En todos los requerimientos, **el punto de venta no se ingresa**: es el asignado
 
 #### RF-01 — Consultar artículos disponibles para la venta
 
-El sistema debe listar los artículos que se pueden vender en un punto de venta y canal, con su precio vigente y stock disponible.
+El sistema debe listar los artículos que se pueden vender en un punto de venta y canal, agrupados por categoría de venta, con su precio vigente, su tasa de IGV y stock disponible.
 
-- **Entrada:** texto de búsqueda opcional (código o descripción). El punto de venta es el del usuario (`SGP_USUARIO.vchCodPuntoVenta`) y el canal es siempre `01` (no se ingresa).
-- **Salida por artículo:** código, descripción, unidad de medida, precio unitario vigente, stock disponible.
-- **Reglas:** RN-01, RN-06, RN-09.
+- **Entrada:** categoría opcional y texto de búsqueda opcional (código o descripción). El punto de venta es el del usuario (`SGP_USUARIO.vchCodPuntoVenta`); el tipo de orden es siempre `V41` y el canal `30` (no se ingresan).
+- **Salida por artículo:** categoría, código, descripción, unidad de medida, precio unitario vigente, tasa de IGV, stock disponible. La pantalla muestra una fila de encabezado por categoría.
+- **Reglas:** RN-01, RN-03, RN-06, RN-09.
 - **Criterios de aceptación:**
-  - Solo se listan artículos activos que tengan una tarifa vigente para el canal a la fecha actual.
+  - Solo se listan artículos activos asignados a una categoría activa (`SGP_CATEGORIA_ARTICULO.vchestado = 'A'` y `SGP_CATEGORIA_VENTA.vchestado = 'A'`) para el tipo de orden y canal de la venta, que tengan una tarifa vigente para el canal a la fecha actual y una tasa de IVA vigente (`SGP_DETALLE_IVA`).
+  - Se ordenan por categoría y descripción. Si un artículo tiene varias categorías, se usa la de menor código.
   - El stock mostrado es el calculado para ese punto de venta (RN-09).
   - Si el punto de venta o el canal no existe o está inactivo, se responde *no encontrado*.
 
@@ -132,9 +134,9 @@ El sistema debe registrar una venta con sus líneas de detalle, generar el compr
 - **Entrada:**
   - Usuario que registra: se toma de la sesión iniciada (RF-21), no se ingresa.
   - Punto de venta: no se ingresa; es el asignado al usuario en `SGP_USUARIO.vchCodPuntoVenta` (RN-19).
-  - Canal (tarifa canal): no se ingresa; es siempre `01`.
+  - Canal (tarifa canal): no se ingresa; es siempre `30`.
   - Almacén (`vchCodAlmacen`): no se ingresa; es el primer almacén activo (menor `vchCodAlmacen`) del punto de venta en `SGP_PUNTO_VENTA_ALMACEN` (P-13). Si no tiene ninguno, la venta se rechaza.
-  - Tipo de orden: no se ingresa; es `V01` (valor por defecto del procedimiento de referencia), activo en `SGP_TIPO_ORDEN`.
+  - Tipo de orden: no se ingresa; es `V41` (Tickets de Hemeroteca), activo en `SGP_TIPO_ORDEN`. Es el tipo de orden de las categorías de artículo del canal `30`.
   - Moneda: no se ingresa; siempre soles (RN-21).
   - Cliente (código).
   - Tipo de comprobante (boleta o factura) y forma de pago.
@@ -146,7 +148,7 @@ El sistema debe registrar una venta con sus líneas de detalle, generar el compr
   - Se crea un registro en `SGP_CABECERA_TRANSACCION_BS` y una línea en `SGP_DETALLE_TRANSACCION_BS` por cada artículo, numeradas desde 1 (`numLinTransaccion`).
   - La cabecera se crea con `chrSituacionRegistro = 'I'` e `intEstado = 1` (P-10), y pasa a `'A'` al emitirse el comprobante, como en el procedimiento de referencia. Como todo ocurre en una sola transacción (RN-15), una venta nunca queda en `'I'`.
   - El tipo de liquidación (`vchTipLiquidacion`) se toma de `SGP_TIPO_ORDEN.intCodTipoLiquidacion` del tipo de orden.
-  - El código de canal (`vchCodTarifaCanal`) se graba con la normalización del procedimiento de referencia: sin espacios, y si tiene 2 caracteres se antepone un espacio (`01` → `' 01'`).
+  - El código de canal (`vchCodTarifaCanal`) se graba con la normalización del procedimiento de referencia: sin espacios, y si tiene 2 caracteres se antepone un espacio (`30` → `' 30'`).
   - Un artículo no puede repetirse en dos líneas de la misma venta.
   - La fecha de venta (`dtmFechaVenta`) es la fecha y hora del servidor.
   - Si cualquier validación falla, no se graba nada (RN-15).
@@ -157,7 +159,7 @@ El sistema debe calcular los importes de cada línea y de la cabecera; el operad
 
 Se sigue la convención del procedimiento de referencia, en la que **el subtotal de la línea incluye el IGV**. A diferencia del procedimiento, **la tarifa ya incluye el IGV** (P-15), así que el IGV se desglosa en lugar de sumarse.
 
-- **Por línea** (`SGP_DETALLE_TRANSACCION_BS`): `numSubTotal = Cantidad × Tarifa` (importe de la línea con IGV); `ValorVenta = numSubTotal / 1.18`, redondeado a 4 decimales; `numIGV = numSubTotal − ValorVenta`; `numMontoBruto = Cantidad × Tarifa`.
+- **Por línea** (`SGP_DETALLE_TRANSACCION_BS`): `numSubTotal = Cantidad × Tarifa` (importe de la línea con IGV); `ValorVenta = numSubTotal / (1 + tasa)`, redondeado a 4 decimales, con la tasa de IGV del artículo (RN-03); `numIGV = numSubTotal − ValorVenta`; `numMontoBruto = Cantidad × Tarifa`.
 - **Cabecera de la venta y del comprobante:** `numMontoBruto = Σ numSubTotal` de las líneas; `numSubTotal = Σ (numSubTotal − numIGV)` (base imponible); `numMontoIGV = Σ numIGV`; `numMontoTotal = numSubTotal + numMontoIGV`; `numMontoDescuento = numMontoRecargo = 0`.
 - **Detalle del comprobante:** `numPrecioUnitario = numTarifa`; `numSubTotal` y `numIGV` iguales a los de la línea; `numMontoBruto = numSubTotal + numMontoRecargo − numMontoDescuento`.
 - **Reglas:** RN-03, RN-04, RN-05.
@@ -194,7 +196,7 @@ Por cada línea de la venta, el sistema debe registrar una salida en el kardex.
   | Columna | Valor |
   |---|---|
   | `CodArticulo`, `CodPuntoVenta` | Los de la línea y la venta (punto de venta sin espacios, comparado con `LTRIM/RTRIM`) |
-  | `CodTarifaCanal` | `'01'`. El procedimiento de referencia graba NULL por un error (la variable nunca se asigna); el sistema nuevo graba el canal. |
+  | `CodTarifaCanal` | `'30'`. El procedimiento de referencia graba NULL por un error (la variable nunca se asigna); el sistema nuevo graba el canal. |
   | `TipoTransaccion` | `'VENTA'` |
   | `FechaTransaccion` | Fecha de la venta sin hora |
   | `Cantidad` | Cantidad vendida en negativo |
@@ -373,13 +375,13 @@ El operador debe poder obtener el reporte de las ventas registradas en su punto 
 |---|---|
 | **RN-01** | Solo se usan registros activos (`chrSituacionRegistro = 'A'`) de clientes, artículos, tarifas, puntos de venta, canales, impresoras, bancos y usuarios. |
 | **RN-02** | Los códigos de catálogo (`SGP_TABLA` / `SGP_DETALLE_TABLA`) solo son válidos si están activos (`chrSituacionRegistro = 'A'`). |
-| **RN-03** | La tasa de IGV es **0.18**. La tarifa incluye el IGV, que se desglosa en cada línea (`ValorVenta = numSubTotal / 1.18`). |
+| **RN-03** | La tasa de IGV es la del código de IVA del artículo (`SGP_ARTICULO.vchCodIva`): el `numValorIGV` (porcentaje) del registro activo de `SGP_DETALLE_IVA` con la fecha de vigencia más reciente que no supere la fecha de la venta, como `pga_obtener_impuesto_iva` (p. ej. `G01` = 18 %, `E20` exonerado = 0 %). Sin tasa vigente el artículo no se vende. La tarifa incluye el IGV, que se desglosa en cada línea (`ValorVenta = numSubTotal / (1 + tasa)`). |
 | **RN-04** | Convención del procedimiento de referencia: el subtotal de la línea incluye el IGV (`numSubTotal = Cantidad × Tarifa = ValorVenta + numIGV`). En las cabeceras, `numSubTotal = Σ (numSubTotal − numIGV)` de las líneas (base imponible), `numMontoIGV = Σ numIGV` y `numMontoTotal = numSubTotal + numMontoIGV` (detalle en RF-06). |
 | **RN-05** | Todos los importes se manejan con 4 decimales. Los totales de cabecera y comprobante son la suma exacta de sus líneas. |
 | **RN-06** | Una tarifa es vigente si `dtmFecInicio` ≤ fecha de venta y la fecha no pasa del día de `dtmFecCaducidad` (incluido, como en el procedimiento de referencia). |
 | **RN-07** | `numCantidad` es el tope del tramo: se aplica la tarifa vigente con el **menor `numCantidad` mayor o igual** a la cantidad vendida; si hay varias con el mismo tope, la de `dtmFecInicio` más reciente. Si la cantidad supera el tope más alto, no hay precio y la venta se rechaza (P-06). |
 | **RN-08** | La cantidad de cada línea debe ser mayor que 0. |
-| **RN-09** | El stock se lleva por **artículo + punto de venta** y es la suma de `PGA_TRANSACCION_KARDEX.Cantidad` para esa combinación, **sin filtrar por canal**: el canal es fijo (`01`) y los movimientos grabados por el procedimiento de referencia tienen `CodTarifaCanal` en NULL. Los códigos se comparan sin espacios. No existe tabla de saldos. |
+| **RN-09** | El stock se lleva por **artículo + punto de venta** y es la suma de `PGA_TRANSACCION_KARDEX.Cantidad` para esa combinación, **sin filtrar por canal**: el canal es fijo (`30`) y los movimientos grabados por el procedimiento de referencia tienen `CodTarifaCanal` en NULL. Los códigos se comparan sin espacios. No existe tabla de saldos. |
 | **RN-10** | No se permite vender más que el stock disponible **[PENDIENTE P-07]**. |
 | **RN-11** | Cada línea vendida genera un movimiento en el kardex con `TipoTransaccion = 'VENTA'` y la cantidad en negativo, enlazado a la transacción (`CodTransaccion`) (RF-09). |
 | **RN-12** | El importe total del comprobante es igual al de la venta que lo origina. |

@@ -14,6 +14,11 @@ public class ArticulosController(ArticuloService articulos) : Controller
     [HttpGet]
     [ProducesResponseType<IReadOnlyList<ArticuloDisponibleDto>>(StatusCodes.Status200OK)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> Disponibles(string? texto, CancellationToken ct) =>
-        Json(await articulos.ListarDisponiblesAsync(texto, ct));
+    public async Task<IActionResult> Disponibles(string? texto, int? categoria, CancellationToken ct) =>
+        Json(await articulos.ListarDisponiblesAsync(texto, categoria, ct));
+
+    [HttpGet]
+    [ProducesResponseType<IReadOnlyList<CategoriaVentaDto>>(StatusCodes.Status200OK)]
+    public async Task<IActionResult> Categorias(CancellationToken ct) =>
+        Json(await articulos.ListarCategoriasAsync(ct));
 }

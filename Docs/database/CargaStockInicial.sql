@@ -5,7 +5,9 @@
   artículo + punto de venta (RN-09), así que sin esta carga no se puede vender nada.
 
   Qué inserta: un ingreso de @Cantidad unidades por cada combinación de
-    - artículo activo con tarifa vigente en el canal 01 (los que muestra la pantalla de venta), y
+    - artículo activo asignado a una categoría activa (SGP_CATEGORIA_ARTICULO) para el tipo de
+      orden @TipoOrden y el canal @Canal, con tarifa vigente en ese canal (los que muestra la
+      pantalla de venta), y
     - punto de venta activo que tiene al menos un usuario activo y vigente
       (o solo @PuntoVenta si se indica).
 
@@ -23,6 +25,8 @@ SET XACT_ABORT ON;
 DECLARE @Cantidad   numeric(18, 4) = 100;     -- unidades por artículo y punto de venta
 DECLARE @PuntoVenta varchar(4)     = NULL;    -- p. ej. '001' para cargar solo ese punto de venta
 DECLARE @Confirmar  bit            = 0;       -- 0 = solo vista previa (ROLLBACK); 1 = grabar (COMMIT)
+DECLARE @TipoOrden  varchar(3)     = 'V41';   -- tipo de orden y canal de la venta (ParametrosVenta)
+DECLARE @Canal      varchar(3)     = '30';
 
 DECLARE @Proceso varchar(50) = 'CARGA INICIAL';
 DECLARE @Creador varchar(50) = 'carga_inicial';
@@ -32,12 +36,17 @@ DECLARE @Hoy     datetime    = CAST(CAST(@Ahora AS date) AS datetime);
 BEGIN TRANSACTION;
 
 ;WITH Articulos AS (
-    -- Mismo criterio que la pantalla: activo y con tarifa vigente en el canal 01 (RN-06)
+    -- Mismo criterio que la pantalla: activo, con categoría de venta y con tarifa vigente en el canal (RN-06)
     SELECT DISTINCT LTRIM(RTRIM(a.vchCodArticulo)) AS CodArticulo
     FROM SGP_ARTICULO a
+    JOIN SGP_CATEGORIA_ARTICULO ca ON LTRIM(RTRIM(ca.vchCodArticulo)) = LTRIM(RTRIM(a.vchCodArticulo))
+    JOIN SGP_CATEGORIA_VENTA cv ON cv.intCodCategoria = ca.intCodCategoria
     JOIN SGP_TARIFA t ON LTRIM(RTRIM(t.vchCodArticulo)) = LTRIM(RTRIM(a.vchCodArticulo))
     WHERE a.chrSituacionRegistro = 'A'
-      AND LTRIM(RTRIM(t.vchCodTarifaCanal)) = '01'
+      AND ca.vchestado = 'A' AND cv.vchestado = 'A'
+      AND LTRIM(RTRIM(ca.vchCodTipoOrden)) = @TipoOrden
+      AND LTRIM(RTRIM(ca.vchCodTarifaCanal)) = @Canal
+      AND LTRIM(RTRIM(t.vchCodTarifaCanal)) = @Canal
       AND t.chrSituacionRegistro = 'A'
       AND t.numPrecioUnidad IS NOT NULL
       AND t.dtmFecInicio <= @Ahora
@@ -61,7 +70,7 @@ INSERT INTO PGA_TRANSACCION_KARDEX (
     CodArticulo, CodTarifaCanal, CodPuntoVenta, TipoTransaccion, FechaTransaccion, Cantidad,
     CodTransaccion, Descripcion, Estado, Proceso, GuidRegistro, SituacionRegistro, Creador, FechaCreacion)
 SELECT
-    a.CodArticulo, '01', p.CodPuntoVenta, 'INGRESO', @Hoy, @Cantidad,
+    a.CodArticulo, @Canal, p.CodPuntoVenta, 'INGRESO', @Hoy, @Cantidad,
     NULL, 'Carga inicial de stock', '', @Proceso, CONVERT(varchar(100), NEWID()), 'A', @Creador, @Ahora
 FROM Articulos a
 CROSS JOIN PuntosVenta p

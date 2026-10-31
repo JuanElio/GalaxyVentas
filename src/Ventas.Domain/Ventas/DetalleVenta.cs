@@ -12,7 +12,8 @@ public class DetalleVenta
         CodigoArticulo = null!;
     }
 
-    internal DetalleVenta(int numeroLinea, string codigoArticulo, string? unidadMedida, decimal cantidad, decimal tarifa)
+    internal DetalleVenta(int numeroLinea, string codigoArticulo, string? unidadMedida, decimal cantidad, decimal tarifa,
+        decimal tasaIgv)
     {
         if (cantidad <= 0)
             throw new DominioException($"La cantidad del artículo {codigoArticulo} debe ser mayor que 0.");
@@ -26,7 +27,7 @@ public class DetalleVenta
         Tarifa = tarifa;
 
         // La tarifa incluye el IGV (P-15): el subtotal de la línea es el importe con IGV (RN-04)
-        var importes = Importes.CalcularLinea(cantidad, tarifa);
+        var importes = Importes.CalcularLinea(cantidad, tarifa, tasaIgv);
         MontoBruto = importes.MontoBruto;
         SubTotal = importes.SubTotal;
         Igv = importes.Igv;

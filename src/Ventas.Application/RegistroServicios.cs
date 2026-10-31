@@ -17,6 +17,7 @@ public static class RegistroServicios
         services.TryAddSingleton(TimeProvider.System);
 
         services.AddScoped<AutenticacionService>();
+        services.AddScoped<MisDatosService>();
         services.AddScoped<ClienteService>();
         services.AddScoped<ArticuloService>();
         services.AddScoped<CatalogoService>();

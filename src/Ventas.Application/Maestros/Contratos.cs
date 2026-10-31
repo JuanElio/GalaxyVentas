@@ -17,21 +17,31 @@ public interface IClienteRepository
     Task AgregarAsync(Cliente cliente, CancellationToken ct);
 }
 
-/// <summary>Artículo activo con sus tarifas vigentes en un canal.</summary>
-public sealed record ArticuloConTarifas(Articulo Articulo, IReadOnlyList<Tarifa> Tarifas);
+/// <summary>
+/// Artículo activo con su categoría de venta, la tasa de IGV vigente de su código de IVA
+/// (fracción: 0.18, o 0 si está exonerado) y sus tarifas vigentes en el canal.
+/// </summary>
+public sealed record ArticuloConTarifas(Articulo Articulo, IReadOnlyList<Tarifa> Tarifas, CategoriaVenta Categoria, decimal TasaIgv);
 
+/// <summary>
+/// Artículos vendibles: activos, asignados a una categoría activa para el tipo de orden y canal
+/// (SGP_CATEGORIA_ARTICULO), con tarifa vigente en ese canal y con tasa de IVA vigente.
+/// </summary>
 public interface IArticuloRepository
 {
     /// <summary>
-    /// Artículos activos que tienen al menos una tarifa vigente en el canal a la fecha, filtrados
-    /// opcionalmente por código o descripción. Los códigos se devuelven sin espacios.
+    /// Artículos vendibles a la fecha, filtrados opcionalmente por categoría y por código o
+    /// descripción, ordenados por categoría y descripción. Los códigos se devuelven sin espacios.
     /// </summary>
     Task<IReadOnlyList<ArticuloConTarifas>> ListarConTarifasVigentesAsync(
-        string codigoCanal, string? texto, DateTime fecha, int maximo, CancellationToken ct);
+        string tipoOrden, string codigoCanal, int? codigoCategoria, string? texto, DateTime fecha, int maximo, CancellationToken ct);
 
-    /// <summary>Los artículos pedidos que están activos y tienen tarifa vigente en el canal.</summary>
+    /// <summary>Los artículos pedidos que son vendibles a la fecha.</summary>
     Task<IReadOnlyList<ArticuloConTarifas>> ObtenerConTarifasVigentesAsync(
-        string codigoCanal, IReadOnlyCollection<string> codigosArticulo, DateTime fecha, CancellationToken ct);
+        string tipoOrden, string codigoCanal, IReadOnlyCollection<string> codigosArticulo, DateTime fecha, CancellationToken ct);
+
+    /// <summary>Categorías activas que tienen algún artículo activo asignado para el tipo de orden y canal.</summary>
+    Task<IReadOnlyList<CategoriaVenta>> ListarCategoriasAsync(string tipoOrden, string codigoCanal, CancellationToken ct);
 
     Task<TarifaCanal?> ObtenerCanalAsync(string codigoCanal, CancellationToken ct);
 }

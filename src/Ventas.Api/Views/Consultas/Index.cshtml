@@ -9,7 +9,8 @@
     <p class="sub">Venta por número de transacción o comprobante por tipo y número, en su punto de venta</p>
 </div>
 
-<section class="tarjeta">
+<section class="tarjeta tarjeta-seccion" aria-labelledby="h-buscar">
+    <h2 id="h-buscar">Buscar venta o comprobante</h2>
     <div class="fila-form" style="align-items:flex-start">
         <form method="get" asp-action="Index" class="fila-form" autocomplete="off">
             <div class="campo">
@@ -41,7 +42,7 @@
     }
 </section>
 
-<section class="tarjeta">
+<section class="tarjeta tarjeta-seccion">
     <h2>Últimas ventas del punto de venta</h2>
     <div class="tabla-scroll">
         <table class="tabla">

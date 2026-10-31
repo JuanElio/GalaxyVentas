@@ -27,29 +27,46 @@ public class ConsultasBaseDatosTests(WebApplicationFactory<Program> factory) : I
     }
 
     [Fact]
-    public Task Articulos_DelCanal01ConTarifasVigentesYCodigosSinEspacios() => EnBaseDatosAsync(async servicios =>
+    public Task Articulos_DeLasCategoriasDeV41Canal30ConTarifaEIgvVigentes() => EnBaseDatosAsync(async servicios =>
     {
         var repositorio = servicios.GetRequiredService<IArticuloRepository>();
 
-        var articulos = await repositorio.ListarConTarifasVigentesAsync("01", null, DateTime.Now, 100, CancellationToken.None);
+        var articulos = await repositorio.ListarConTarifasVigentesAsync("V41", "30", null, null, DateTime.Now, 100, CancellationToken.None);
 
         Assert.NotEmpty(articulos);
         Assert.All(articulos, a =>
         {
             Assert.Equal(a.Articulo.Codigo.Trim(), a.Articulo.Codigo);
             Assert.NotEmpty(a.Tarifas);
+            Assert.True(a.Categoria.Activo);
+            Assert.InRange(a.TasaIgv, 0m, 0.18m);
         });
-        Assert.True((await repositorio.ObtenerCanalAsync("01", CancellationToken.None))?.Activo);
+        Assert.Equal(articulos.Select(a => a.Categoria.Codigo).Order(), articulos.Select(a => a.Categoria.Codigo));
+        Assert.True((await repositorio.ObtenerCanalAsync("30", CancellationToken.None))?.Activo);
+
+        var categorias = await repositorio.ListarCategoriasAsync("V41", "30", CancellationToken.None);
+        Assert.Superset(articulos.Select(a => a.Categoria.Codigo).ToHashSet(), categorias.Select(c => c.Codigo).ToHashSet());
+    });
+
+    [Fact]
+    public Task Articulos_FiltraPorCategoria() => EnBaseDatosAsync(async servicios =>
+    {
+        var repositorio = servicios.GetRequiredService<IArticuloRepository>();
+        var categoria = (await repositorio.ListarCategoriasAsync("V41", "30", CancellationToken.None)).First().Codigo;
+
+        var filtrados = await repositorio.ListarConTarifasVigentesAsync("V41", "30", categoria, null, DateTime.Now, 100, CancellationToken.None);
+
+        Assert.All(filtrados, a => Assert.Equal(categoria, a.Categoria.Codigo));
     });
 
     [Fact]
     public Task Articulos_FiltraPorTexto() => EnBaseDatosAsync(async servicios =>
     {
         var repositorio = servicios.GetRequiredService<IArticuloRepository>();
-        var todos = await repositorio.ListarConTarifasVigentesAsync("01", null, DateTime.Now, 100, CancellationToken.None);
+        var todos = await repositorio.ListarConTarifasVigentesAsync("V41", "30", null, null, DateTime.Now, 100, CancellationToken.None);
         var palabra = todos.First(a => !string.IsNullOrWhiteSpace(a.Articulo.Descripcion)).Articulo.Descripcion!.Trim().Split(' ')[0];
 
-        var filtrados = await repositorio.ListarConTarifasVigentesAsync("01", palabra, DateTime.Now, 100, CancellationToken.None);
+        var filtrados = await repositorio.ListarConTarifasVigentesAsync("V41", "30", null, palabra, DateTime.Now, 100, CancellationToken.None);
 
         Assert.NotEmpty(filtrados);
         Assert.All(filtrados, a => Assert.True(

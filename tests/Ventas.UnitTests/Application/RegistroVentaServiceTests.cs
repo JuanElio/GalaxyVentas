@@ -46,14 +46,15 @@ public class RegistroVentaServiceTests
         _puntosVenta.Setup(p => p.ObtenerAlmacenPrincipalAsync("001", It.IsAny<CancellationToken>())).ReturnsAsync("110");
         _puntosVenta.Setup(p => p.ObtenerZonaVentaAsync("L10", It.IsAny<CancellationToken>()))
             .ReturnsAsync(new ZonaVenta("L10", "SEDE CENTRAL                  "));
-        _puntosVenta.Setup(p => p.ObtenerTipoOrdenAsync("V01", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new TipoOrden("V01", "VENTA", 1, activo: true));
+        _puntosVenta.Setup(p => p.ObtenerTipoOrdenAsync("V41", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new TipoOrden("V41", "Tickets de Hemeroteca", 1, activo: true));
         _clientes.Setup(c => c.ObtenerActivoAsync(125, It.IsAny<CancellationToken>())).ReturnsAsync(ClienteDni);
-        _articulos.Setup(a => a.ObtenerConTarifasVigentesAsync("01", It.IsAny<IReadOnlyCollection<string>>(), Hoy, It.IsAny<CancellationToken>()))
+        _articulos.Setup(a => a.ObtenerConTarifasVigentesAsync("V41", "30", It.IsAny<IReadOnlyCollection<string>>(), Hoy, It.IsAny<CancellationToken>()))
             .ReturnsAsync(
             [
                 new ArticuloConTarifas(new Articulo("ART001", "CUADERNO A4", "UND", true),
-                    [new Tarifa("ART001", " 01", 999999, 59.0000m, new DateTime(2020, 1, 1), new DateTime(2050, 1, 1), true)]),
+                    [new Tarifa("ART001", " 30", 999999, 59.0000m, new DateTime(2020, 1, 1), new DateTime(2050, 1, 1), true)],
+                    new CategoriaVenta(1, "Bienes", true), 0.18m),
             ]);
         _stock.Setup(s => s.ObtenerStockAsync("001", It.IsAny<IReadOnlyCollection<string>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase) { ["ART001"] = 5 });
@@ -90,9 +91,9 @@ public class RegistroVentaServiceTests
         {
             CodigoPuntoVenta = "001",
             CodigoCliente = 125L,
-            TipoOrden = "V01",
+            TipoOrden = "V41",
             TipoLiquidacion = "1",
-            CodigoTarifaCanal = "01",
+            CodigoTarifaCanal = "30",
             CodigoAlmacen = "110",
             CodigoMoneda = "SOL",
             FormaPago = "C00",
@@ -107,7 +108,7 @@ public class RegistroVentaServiceTests
         _comprobanteGrabado.Pagos.Single().MedioPago.Should().Match<MedioPago>(m => m.Tipo == TipoMedioPago.Efectivo && m.Monto == 118.0000m);
 
         _kardexGrabado.Should().ContainSingle().Which.Should().Match<MovimientoKardex>(m =>
-            m.Cantidad == -2 && m.CodigoPuntoVenta == "001" && m.Descripcion == "Salida por venta B001-0243455");
+            m.Cantidad == -2 && m.CodigoPuntoVenta == "001" && m.CodigoCanal == "30" && m.Descripcion == "Salida por venta B001-0243455");
 
         // Reserva el stock antes de leerlo y graba en tres pasos dentro de la transacción
         _stock.Verify(s => s.BloquearAsync("001", It.Is<IReadOnlyCollection<string>>(c => c.Single() == "ART001"), It.IsAny<CancellationToken>()));

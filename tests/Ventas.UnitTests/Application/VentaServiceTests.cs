@@ -28,23 +28,27 @@ public class VentaServiceTests
         _usuario.SetupGet(u => u.Nombre).Returns("Juan Pérez");
 
         // Escalas reales del artículo 7041110101; ART002 con escala única
-        _articulos.Setup(a => a.ObtenerConTarifasVigentesAsync("01", It.IsAny<IReadOnlyCollection<string>>(), Hoy,
+        _articulos.Setup(a => a.ObtenerConTarifasVigentesAsync("V41", "30", It.IsAny<IReadOnlyCollection<string>>(), Hoy,
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(
             [
                 new ArticuloConTarifas(new Articulo("7041110101", "AVISO CLASIFICADO", "CM", true),
-                    [Tarifa("7041110101", 6, 83.0000m), Tarifa("7041110101", 15, 102.6000m)]),
-                new ArticuloConTarifas(new Articulo("ART002", "ANEXO", "PAG", true), [Tarifa("ART002", 999999, 36.6000m)]),
+                    [Tarifa("7041110101", 6, 83.0000m), Tarifa("7041110101", 15, 102.6000m)], Bienes, 0.18m),
+                new ArticuloConTarifas(new Articulo("ART002", "ANEXO", "PAG", true), [Tarifa("ART002", 999999, 36.6000m)], Bienes, 0.18m),
+                new ArticuloConTarifas(new Articulo("LIB001", "LIBRO EXONERADO", "UND", true), [Tarifa("LIB001", 999999, 50.0000m)], Libros, 0m),
             ]);
         _stock.Setup(s => s.ObtenerStockAsync("001", It.IsAny<IReadOnlyCollection<string>>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase) { ["7041110101"] = 100, ["ART002"] = 3 });
+            .ReturnsAsync(new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase) { ["7041110101"] = 100, ["ART002"] = 3, ["LIB001"] = 10 });
 
         _servicio = new VentaService(_articulos.Object, _puntosVenta.Object, _stock.Object, _correlativos.Object,
             _usuario.Object, new CotizarVentaValidator(), new RelojFijo(Hoy));
     }
 
+    private static readonly CategoriaVenta Bienes = new(1, "Bienes", activo: true);
+    private static readonly CategoriaVenta Libros = new(3, "Libros", activo: true);
+
     private static Tarifa Tarifa(string articulo, decimal tope, decimal precio) =>
-        new(articulo, " 01", tope, precio, new DateTime(2021, 12, 15), new DateTime(2050, 1, 1), activo: true);
+        new(articulo, " 30", tope, precio, new DateTime(2021, 12, 15), new DateTime(2050, 1, 1), activo: true);
 
     private Task<CotizacionDto> Cotizar(params LineaVentaDto[] lineas) =>
         _servicio.CotizarAsync(new CotizarVentaDto(lineas), CancellationToken.None);
@@ -64,6 +68,16 @@ public class VentaServiceTests
         cotizacion.MontoTotal.Should().Be(esperados.MontoTotal).And.Be(1062.6000m);
         cotizacion.SubTotal.Should().Be(esperados.SubTotal);
         cotizacion.Valida.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task Cotizar_ArticuloExonerado_NoDesglosaIgv()
+    {
+        var cotizacion = await Cotizar(new LineaVentaDto("LIB001", 2));
+
+        cotizacion.Lineas.Single().Should().Match<LineaCotizadaDto>(l => l.SubTotal == 100.0000m && l.ValorVenta == 100.0000m && l.Igv == 0);
+        cotizacion.MontoIgv.Should().Be(0);
+        cotizacion.MontoTotal.Should().Be(100.0000m);
     }
 
     [Fact]
@@ -122,12 +136,12 @@ public class VentaServiceTests
         _puntosVenta.Setup(p => p.ObtenerAsync("001", It.IsAny<CancellationToken>()))
             .ReturnsAsync(new PuntoVenta(" 001", "SEDE CENTRAL ", "Z01", activo: true));
         _puntosVenta.Setup(p => p.ObtenerAlmacenPrincipalAsync("001", It.IsAny<CancellationToken>())).ReturnsAsync("ALM01 ");
-        _articulos.Setup(a => a.ObtenerCanalAsync("01", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new TarifaCanal(" 01", "Avisos Lima Contado   ", activo: true));
+        _articulos.Setup(a => a.ObtenerCanalAsync("30", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new TarifaCanal(" 30", "Hemeroteca   ", activo: true));
 
         var contexto = await _servicio.ObtenerContextoAsync(CancellationToken.None);
 
-        contexto.Should().Be(new ContextoVentaDto("001", "SEDE CENTRAL", "01 · Avisos Lima Contado", "Soles (SOL)", "V01",
+        contexto.Should().Be(new ContextoVentaDto("001", "SEDE CENTRAL", "30 · Hemeroteca", "Soles (SOL)", "V41",
             "ALM01", "Juan Pérez (jperez)"));
     }
 

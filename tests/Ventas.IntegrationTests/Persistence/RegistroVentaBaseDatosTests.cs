@@ -45,7 +45,7 @@ public class RegistroVentaBaseDatosTests(WebApplicationFactory<Program> factory)
     private static async Task<(string Articulo, long Cliente)> DatosDeVentaAsync(IServiceProvider servicios)
     {
         var articulos = await servicios.GetRequiredService<IArticuloRepository>()
-            .ListarConTarifasVigentesAsync("01", null, DateTime.Now, 100, CancellationToken.None);
+            .ListarConTarifasVigentesAsync("V41", "30", null, null, DateTime.Now, 100, CancellationToken.None);
         var stock = await servicios.GetRequiredService<IStockService>()
             .ObtenerStockAsync(PuntoVenta, articulos.Select(a => a.Articulo.Codigo).ToList(), CancellationToken.None);
         var articulo = articulos.First(a => Tarifa.Elegir(a.Tarifas, 2, DateTime.Now) is not null
@@ -92,7 +92,7 @@ public class RegistroVentaBaseDatosTests(WebApplicationFactory<Program> factory)
         var c = venta.CodigoComprobante;
 
         // Cabecera: formato heredado de punto de venta y canal, estado 'A' y enlace al comprobante
-        Assert.Equal(" 001|A| 01|1|V01|1|0|SOL|C00|B|pruebas", await EscalarAsync<string>(db, $"""
+        Assert.Equal(" 001|A| 30|1|V41|2|0|SOL|C00|B|pruebas", await EscalarAsync<string>(db, $"""
             SELECT vchCodPuntoVenta + '|' + chrSituacionRegistro + '|' + vchCodTarifaCanal + '|' + CONVERT(varchar, intEstado)
                 + '|' + vchTipoOrden + '|' + RTRIM(vchTipLiquidacion) + '|' + chrFlagClienteAgencia + '|' + vchCodMoneda
                 + '|' + vchFormaPago + '|' + vchTipComprobante + '|' + vchCreador AS Value
@@ -125,7 +125,7 @@ public class RegistroVentaBaseDatosTests(WebApplicationFactory<Program> factory)
             $"SELECT COUNT(*) AS Value FROM SGP_MOVIMIENTO_TRANSACCION_BS WHERE numCodComprobante = {c} AND numCodTransaccion = {t} AND numItem = 1 AND numLinTransaccion = 1"));
 
         // Kardex: salida por la cantidad vendida y el stock baja exactamente en esa cantidad (RF-09)
-        Assert.Equal($"VENTA|-2.0000| 001|01|Salida por venta B001-{venta.Numero}", await EscalarAsync<string>(db, $"""
+        Assert.Equal($"VENTA|-2.0000| 001|30|Salida por venta B001-{venta.Numero}", await EscalarAsync<string>(db, $"""
             SELECT TipoTransaccion + '|' + CONVERT(varchar, Cantidad) + '|' + CodPuntoVenta + '|' + CodTarifaCanal + '|' + Descripcion AS Value
             FROM PGA_TRANSACCION_KARDEX WHERE CodTransaccion = {t}
             """));

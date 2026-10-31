@@ -17,6 +17,15 @@ public interface IVerificadorClave
     Task<bool> VerificarAsync(string login, string clave, CancellationToken ct);
 }
 
+/// <summary>
+/// Cambia la contraseña de SGP_USUARIO.vchPassword. Se guarda en texto plano, como la espera el
+/// sistema actual (P-02); el cambio se graba con <see cref="Comun.IUnitOfWork.GuardarCambiosAsync"/>.
+/// </summary>
+public interface ICambioClave
+{
+    Task CambiarAsync(string login, string claveNueva, CancellationToken ct);
+}
+
 /// <summary>Usuario de la sesión, leído de los claims de la cookie (RN-19).</summary>
 public interface IUsuarioActual
 {

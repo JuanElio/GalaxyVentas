@@ -150,29 +150,61 @@
     });
 
     // ---------- 2. Artículos ----------
+    const COLUMNAS_ART = 8;
+
+    // La tasa llega como fracción (0.18); los exonerados (0) se marcan aparte
+    const tasaIgv = (tasa) => (tasa > 0 ? `${Math.round(tasa * 10000) / 100}%` : '<span class="chip chip-warn">Exonerado</span>');
+
+    const filaArticulo = (a) => {
+        const sinStock = a.stock <= 0;
+        const chip = sinStock ? 'chip chip-err' : a.stock < 10 ? 'chip chip-warn' : 'chip';
+        return `<tr>
+            <td class="codigo">${esc(a.codigo)}</td>
+            <td>${esc(a.descripcion)}</td>
+            <td>${esc(a.unidadMedida)}</td>
+            <td class="num">${fmt2(a.precioUnitario)}</td>
+            <td class="num">${tasaIgv(a.tasaIgv)}</td>
+            <td class="num"><span class="${chip}">${a.stock}</span></td>
+            <td class="num"><input type="number" min="1" step="1" value="1" data-cant="${esc(a.codigo)}"
+                aria-label="Cantidad de ${esc(a.codigo)}" ${sinStock ? 'disabled' : ''}></td>
+            <td><button class="btn btn-sm" type="button" data-agregar="${esc(a.codigo)}"
+                ${sinStock ? 'disabled title="Sin stock"' : ''}>Agregar</button></td>
+        </tr>`;
+    };
+
+    // El servidor los devuelve ordenados por categoría: una fila de encabezado por cada grupo
     const renderArticulos = () => {
-        $('#tbody-art').html(estado.articulos.length
-            ? estado.articulos.map((a) => {
-                const sinStock = a.stock <= 0;
-                const chip = sinStock ? 'chip chip-err' : a.stock < 10 ? 'chip chip-warn' : 'chip';
-                return `<tr>
-                    <td class="codigo">${esc(a.codigo)}</td>
-                    <td>${esc(a.descripcion)}</td>
-                    <td>${esc(a.unidadMedida)}</td>
-                    <td class="num">${fmt2(a.precioUnitario)}</td>
-                    <td class="num"><span class="${chip}">${a.stock}</span></td>
-                    <td class="num"><input type="number" min="1" step="1" value="1" data-cant="${esc(a.codigo)}"
-                        aria-label="Cantidad de ${esc(a.codigo)}" ${sinStock ? 'disabled' : ''}></td>
-                    <td><button class="btn btn-sm" type="button" data-agregar="${esc(a.codigo)}"
-                        ${sinStock ? 'disabled title="Sin stock"' : ''}>Agregar</button></td>
-                </tr>`;
-            }).join('')
-            : '<tr><td colspan="7" class="vacio">No hay artículos que coincidan.</td></tr>');
+        if (!estado.articulos.length) {
+            $('#tbody-art').html(`<tr><td colspan="${COLUMNAS_ART}" class="vacio">No hay artículos que coincidan.</td></tr>`);
+            return;
+        }
+        const grupos = new Map();
+        estado.articulos.forEach((a) => {
+            if (!grupos.has(a.codigoCategoria)) grupos.set(a.codigoCategoria, { nombre: a.categoria, articulos: [] });
+            grupos.get(a.codigoCategoria).articulos.push(a);
+        });
+        $('#tbody-art').html([...grupos.values()].map((g) => `
+            <tr class="fila-grupo"><th colspan="${COLUMNAS_ART}" scope="rowgroup">${esc(g.nombre)}
+                <span class="sub">(${g.articulos.length})</span></th></tr>
+            ${g.articulos.map(filaArticulo).join('')}`).join(''));
+    };
+
+    const cargarCategorias = async () => {
+        try {
+            const categorias = await getJson('/Articulos/Categorias');
+            $('#categoria-art').html(`<option value="">Todas</option>${categorias
+                .map((c) => `<option value="${esc(c.codigo)}">${esc(c.descripcion)}</option>`).join('')}`);
+        } catch (jqXHR) {
+            $('#aviso-art').text(mensajesError(jqXHR).join(' '));
+        }
     };
 
     const buscarArticulos = async () => {
         try {
-            estado.articulos = await getJson('/Articulos/Disponibles', { texto: $('#buscar-art').val().trim() });
+            estado.articulos = await getJson('/Articulos/Disponibles', {
+                texto: $('#buscar-art').val().trim(),
+                categoria: $('#categoria-art').val() || undefined,
+            });
             $('#aviso-art').text('');
         } catch (jqXHR) {
             estado.articulos = [];
@@ -186,6 +218,7 @@
         clearTimeout(temporizadorBusqueda);
         temporizadorBusqueda = setTimeout(buscarArticulos, 300);
     });
+    $('#categoria-art').on('change', buscarArticulos);
 
     $('#tbody-art').on('click', '[data-agregar]', async (e) => {
         const codigo = String($(e.currentTarget).data('agregar'));
@@ -372,7 +405,7 @@
             mostrarErrores('#errores', mensajesError(jqXHR));
         }
 
-        await Promise.all([buscarArticulos(), cotizar(), consultarNumeracion()]);
+        await Promise.all([cargarCategorias(), buscarArticulos(), cotizar(), consultarNumeracion()]);
     };
 
     iniciar();
