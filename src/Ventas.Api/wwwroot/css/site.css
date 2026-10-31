@@ -218,10 +218,12 @@ h3 { font-size: .95rem; margin: 16px 0 8px; }
 }
 
 /* Rejilla de la pantalla de venta */
-.grid-venta { display: grid; grid-template-columns: 1fr; gap: 0 16px; }
+/* minmax(0, …): la tabla de artículos se desplaza dentro de su tarjeta en lugar de ensanchar la página */
+.grid-venta { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0 16px; }
 @media (min-width: 1000px) {
   .grid-venta { grid-template-columns: minmax(0, 1fr) 380px; }
-  .col-lateral { position: sticky; top: 16px; align-self: start; }
+  /* Si la columna fija es más alta que la ventana, se desplaza sola para que el botón Registrar siga alcanzable */
+  .col-lateral { position: sticky; top: 16px; align-self: start; max-height: calc(100vh - 32px); overflow-y: auto; }
 }
 
 /* Formularios */
